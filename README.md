@@ -1,53 +1,59 @@
-# HCMS — Hierarchical Compressed Memory System (V2)
+# HCMS — Hierarchical Compressed Memory System (v2)
 
-**HCMS** é um substrato de memória de alta performance para agentes de IA. Ao contrário de RAGs tradicionais, o HCMS combina busca vetorial (semântica) com busca textual (BM25) e refinamento via Cross-Encoders para garantir que fatos críticos nunca sejam perdidos, independentemente do volume de dados.
+**HCMS v2** é uma engine de memória autônoma projetada para agentes de IA. Ele supera implementações tradicionais de RAG ao combinar busca semântica, busca exata por texto e um sistema de "esquecimento cognitivo" que mantém o contexto do agente limpo e relevante.
 
-## Arquitetura de Recuperação (SOTA 2025)
+## 🚀 O que há de novo na V2?
 
-O sistema utiliza uma pipeline de 4 estágios para superar limitações de relevância:
-1.  **Hybrid Search:** Scan simultâneo em `pgvector` e `tsvector` (PostgreSQL).
-2.  **RRF Fusion:** Fusão de rankings (Reciprocal Rank Fusion) para unificar resultados semânticos e exatos.
-3.  **Cross-Encoder Reranking:** Reordenação dos top candidatos através de atenção profunda (Acurácia > 90%).
-4.  **1-Hop Context Injection:** Injeção automática de vizinhos relacionais para expandir a linha de raciocínio do agente.
+-   **Busca Híbrida + RRF:** Integração entre `pgvector` e `tsvector` usando *Reciprocal Rank Fusion* para precisão total em termos técnicos e semânticos.
+-   **Cross-Encoder Reranking:** Reordenação de candidatos por um modelo de atenção profunda, eliminando alucinações de recuperação.
+-   **Cognitive Pruning:** Sistema de Garbage Collection que deleta ruído e arquiva fatos estagnados automaticamente.
+-   **Agent Bridge (Ollama):** Integração nativa com **Llama 3.2 (3B)** para extração automática de fatos e geração de respostas contextualizadas.
+-   **Real-time Dashboard:** Interface Next.js para visualizar e gerenciar o substrato de memória do agente.
 
 ---
 
-## Estrutura do Projeto
+## 🛠️ Tech Stack
+
+-   **Backend:** Python 3.12, FastAPI, PostgreSQL + pgvector, Ollama.
+-   **Modelos:** 
+    -   Embedding: `all-MiniLM-L6-v2`
+    -   Reranker: `cross-encoder/ms-marco-MiniLM-L-6-v2`
+    -   LLM: `Llama-3.2:3b` (via Ollama)
+-   **Frontend:** Next.js 15, TypeScript, Tailwind CSS, Shadcn/UI, Lucide Icons.
+
+---
+
+## 🏗️ Estrutura do Projeto
 
 ```text
 hcms/
-├── core.py             # Engine principal (Hybrid Recall & RRF)
-├── storage.py          # Interface PostgreSQL + FTS Support
-├── reranker.py         # Refinamento via Cross-Encoder (Sentence Transformers)
-├── compression.py      # Backend de compressão Zstd para documentos frios
-├── tier_management.py  # Gestão de ciclo de vida (Hot/Cold/Archive)
-└── scripts/
-    └── test_hcms.py    # Suite de testes de integração V2
+├── core.py             # Engine: Hybrid Recall, RRF e 1-Hop Expansion
+├── storage.py          # Camada de Persistência PostgreSQL
+├── reranker.py         # Refinamento semântico profundo
+├── agent_bridge.py     # Interface de Inteligência (Ollama)
+├── pruner.py           # Metabolismo Cognitivo (Limpeza de ruído)
+frontend/               # Next.js App
+├── src/app/page.tsx    # Interface de Chat
+└── src/components/     # Memory Dashboard & UI Components
 ```
 
 ---
 
-## Configuração Obrigatória do PostgreSQL
+## 💾 Configuração do Banco de Dados
 
-O HCMS exige extensões e triggers específicos para operar a busca híbrida. Execute os comandos abaixo no seu banco de dados antes de iniciar o sistema:
+O HCMS v2 exige suporte a busca textual exata. Execute no PostgreSQL:
 
-### 1. Extensões e Schema
 ```sql
--- Habilita suporte a vetores
+-- 1. Suporte Vetorial e Textual
 CREATE EXTENSION IF NOT EXISTS vector;
-
--- Adiciona suporte a Busca Híbrida e Importância
 ALTER TABLE memories ADD COLUMN IF NOT EXISTS fts_tokens tsvector;
 ALTER TABLE memories ADD COLUMN IF NOT EXISTS importance FLOAT DEFAULT 1.0;
+ALTER TABLE memories ADD COLUMN IF NOT EXISTS access_count INTEGER DEFAULT 0;
 
--- Índice GIN para performance em buscas textuais exatas
+-- 2. Índice GIN para Busca Híbrida
 CREATE INDEX IF NOT EXISTS idx_memories_fts ON memories USING GIN (fts_tokens);
-```
 
-### 2. Sincronização Automática (Trigger)
-O HCMS automatiza a tokenização de texto diretamente no banco para garantir consistência entre o que é lido e o que é indexado:
-
-```sql
+-- 3. Trigger de Sincronização Automática
 CREATE OR REPLACE FUNCTION memories_fts_trigger() RETURNS trigger AS $$
 BEGIN
   new.fts_tokens := to_tsvector('simple', coalesce(new.content, ''));
@@ -62,49 +68,51 @@ FOR EACH ROW EXECUTE FUNCTION memories_fts_trigger();
 
 ---
 
-## Instalação
+## 🚦 Como Iniciar
 
+### 1. Backend
 ```bash
-pip install psycopg2-binary sentence-transformers numpy zstandard
+# Instale as dependências
+pip install fastapi uvicorn psycopg2-binary sentence-transformers requests zstandard
+
+# Inicie o servidor
+python server.py
+```
+
+### 2. IA Local
+Certifique-se de que o Ollama está rodando:
+```bash
+ollama run llama3.2:3b
+```
+
+### 3. Frontend
+```bash
+cd frontend
+npm install
+npm run dev
 ```
 
 ---
 
-## Como Usar
+## 🧠 Conceitos de Memória na V2
 
-### Ingestão de Conhecimento
-O sistema aceita importância manual e relações de grafo:
-```python
-from hcms.core import HCMS
+### 1. Recuperação em 4 Estágios
+1.  **Hybrid Scan:** Busca vetorial (similaridade) + FTS (termos exatos).
+2.  **RRF Fusion:** Combina os resultados priorizando documentos que aparecem em ambos os rankings.
+3.  **Cross-Encoder:** Re-calcula a relevância real entre a query do usuário e o conteúdo dos top 20 candidatos.
+4.  **1-Hop Injection:** Adiciona memórias relacionadas no grafo (edges) para dar contexto periférico ao agente.
 
-hcms = HCMS("dbname=hcms user=seu_usuario")
+### 2. Upsert Cognitivo
+O sistema evita redundância. Se o usuário disser o mesmo fato várias vezes, o HCMS detecta a similaridade extrema e apenas atualiza o `last_access` da memória existente em vez de criar duplicatas.
 
-# Fato isolado
-hcms.remember("O servidor de produção utiliza a porta 9999.", importance=1.0)
-
-# Fato relacionado (Grafo)
-hcms.remember("A porta 9999 deve ser aberta no firewall.", relations=[("mem_id_anterior", "config")])
-```
-
-### Recuperação (Recall)
-A busca híbrida lida automaticamente com termos exatos e semânticos:
-```python
-# O Recall executará Hybrid Search + RRF + Rerank + Context Injection
-results = hcms.recall("qual a porta do servidor?", limit=3)
-
-for r in results:
-    print(f"Content: {r['content']}")
-    print(f"Contexto Relacionado: {r['context_edges']}")
-```
+### 3. Poda (Pruning)
+O agente "esquece" informações inúteis. Memórias com baixa importância (< 0.3) e sem acessos frequentes são deletadas em ciclos de manutenção para garantir que o contexto não seja poluído por ruído conversacional.
 
 ---
 
-## Diferenciais Técnicos
-
-| Recurso | HCMS V2 | RAG Comum |
-| :--- | :--- | :--- |
-| **Busca por IDs/Códigos** | Nativa (via BM25/FTS) | Falha (Alucinação Vetorial) |
-| **Relação entre Fatos** | Automática (1-Hop Injection) | Inexistente (Fragmentada) |
-| **Refinamento** | Cross-Encoder (Deep Match) | Distância de Cosseno Simples |
-| **Storage** | Otimizado via Tiers & Zstd | Redundante e Pesado |
+## 🖥️ Interface de Controle
+O Frontend inclui um **Memory Dashboard** lateral com um **Slider de Importância**. Isso permite:
+-   Filtrar visualmente memórias irrelevantes.
+-   Deletar manualmente alucinações ou erros de extração do LLM.
+-   Visualizar a "Importância Cognitiva" atribuída pelo agente a cada fato.
 
