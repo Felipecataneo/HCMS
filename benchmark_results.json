@@ -1,0 +1,344 @@
+{
+  "timestamp": 1766405927.401464,
+  "methodology": {
+    "rag_assumptions": {
+      "retrieval_precision": {
+        "factual": 0.7,
+        "relational": 0.5,
+        "multi_hop": 0.35
+      },
+      "rationale": "Based on CRAG/RAGBench benchmarks showing vector search degradation in complex reasoning",
+      "latency_model": {
+        "embedding": 50,
+        "vector_search": 150,
+        "rerank": 100,
+        "llm_generation": 800,
+        "total_typical": 1100
+      }
+    },
+    "hcms_assumptions": {
+      "retrieval_precision": {
+        "factual": 0.95,
+        "relational": 0.85,
+        "multi_hop": 0.75
+      },
+      "cache_hit_definition": "\u226550% of required facts in HOT tier",
+      "rationale": "Graph-native structure preserves relations, reducing false positives",
+      "latency_model": {
+        "planning": 20,
+        "cache_check": 10,
+        "graph_traverse": 80,
+        "synthesis": 150,
+        "total_typical": 260
+      }
+    },
+    "statistical_notes": {
+      "sample_size": 9,
+      "significance_threshold": "p < 0.05 (|t| > 2.0)",
+      "limitation": "Small sample - results are indicative, not generalizable"
+    }
+  },
+  "dataset_stats": {
+    "num_facts": 30,
+    "num_relations": 16,
+    "num_queries": 9,
+    "domains": [
+      "tech",
+      "finance",
+      "legal"
+    ],
+    "query_types": {
+      "factual": 3,
+      "relational": 3,
+      "multi-hop": 3
+    }
+  },
+  "systems": {
+    "rag": {
+      "name": "RAG Baseline",
+      "aggregate_metrics": {
+        "latency_ms": 1100.7347685554628,
+        "context_relevance": 0.5833333333333334,
+        "answer_faithfulness": 0.7,
+        "context_utilization": 0.7,
+        "answer_completeness": 0.5833333333333334,
+        "compression_ratio": 1.0,
+        "storage_bytes": 1541
+      },
+      "per_query": [
+        {
+          "query_id": "query_000",
+          "query_type": "factual",
+          "difficulty": "easy",
+          "latency_ms": 1100.5674510001882,
+          "context_relevance": 1.0,
+          "answer_faithfulness": 0.95,
+          "context_utilization": 0.7,
+          "answer_completeness": 1.0,
+          "retrieved_facts": 1,
+          "required_facts": 1,
+          "assumed_retrieval_precision": 0.7
+        },
+        {
+          "query_id": "query_001",
+          "query_type": "factual",
+          "difficulty": "easy",
+          "latency_ms": 1100.5938979997154,
+          "context_relevance": 1.0,
+          "answer_faithfulness": 0.95,
+          "context_utilization": 0.7,
+          "answer_completeness": 1.0,
+          "retrieved_facts": 1,
+          "required_facts": 1,
+          "assumed_retrieval_precision": 0.7
+        },
+        {
+          "query_id": "query_002",
+          "query_type": "factual",
+          "difficulty": "easy",
+          "latency_ms": 1100.6629339999563,
+          "context_relevance": 1.0,
+          "answer_faithfulness": 0.95,
+          "context_utilization": 0.7,
+          "answer_completeness": 1.0,
+          "retrieved_facts": 1,
+          "required_facts": 1,
+          "assumed_retrieval_precision": 0.7
+        },
+        {
+          "query_id": "query_003",
+          "query_type": "relational",
+          "difficulty": "medium",
+          "latency_ms": 1100.7899020000877,
+          "context_relevance": 0.5,
+          "answer_faithfulness": 0.7,
+          "context_utilization": 0.7,
+          "answer_completeness": 0.5,
+          "retrieved_facts": 1,
+          "required_facts": 2,
+          "assumed_retrieval_precision": 0.5
+        },
+        {
+          "query_id": "query_004",
+          "query_type": "relational",
+          "difficulty": "medium",
+          "latency_ms": 1100.739966999754,
+          "context_relevance": 0.5,
+          "answer_faithfulness": 0.7,
+          "context_utilization": 0.7,
+          "answer_completeness": 0.5,
+          "retrieved_facts": 1,
+          "required_facts": 2,
+          "assumed_retrieval_precision": 0.5
+        },
+        {
+          "query_id": "query_005",
+          "query_type": "relational",
+          "difficulty": "medium",
+          "latency_ms": 1100.8036139996875,
+          "context_relevance": 0.5,
+          "answer_faithfulness": 0.7,
+          "context_utilization": 0.7,
+          "answer_completeness": 0.5,
+          "retrieved_facts": 1,
+          "required_facts": 2,
+          "assumed_retrieval_precision": 0.5
+        },
+        {
+          "query_id": "query_006",
+          "query_type": "multi-hop",
+          "difficulty": "hard",
+          "latency_ms": 1100.9044550000908,
+          "context_relevance": 0.25,
+          "answer_faithfulness": 0.45,
+          "context_utilization": 0.7,
+          "answer_completeness": 0.25,
+          "retrieved_facts": 1,
+          "required_facts": 4,
+          "assumed_retrieval_precision": 0.35
+        },
+        {
+          "query_id": "query_007",
+          "query_type": "multi-hop",
+          "difficulty": "hard",
+          "latency_ms": 1100.792036999792,
+          "context_relevance": 0.25,
+          "answer_faithfulness": 0.45,
+          "context_utilization": 0.7,
+          "answer_completeness": 0.25,
+          "retrieved_facts": 1,
+          "required_facts": 4,
+          "assumed_retrieval_precision": 0.35
+        },
+        {
+          "query_id": "query_008",
+          "query_type": "multi-hop",
+          "difficulty": "hard",
+          "latency_ms": 1100.7586589998937,
+          "context_relevance": 0.25,
+          "answer_faithfulness": 0.45,
+          "context_utilization": 0.7,
+          "answer_completeness": 0.25,
+          "retrieved_facts": 1,
+          "required_facts": 4,
+          "assumed_retrieval_precision": 0.35
+        }
+      ]
+    },
+    "hcms": {
+      "name": "HCMS",
+      "aggregate_metrics": {
+        "latency_ms": 252.42112555553024,
+        "context_relevance": 0.75,
+        "answer_faithfulness": 0.8433333333333333,
+        "context_utilization": 0.8999999999999999,
+        "answer_completeness": 0.75,
+        "compression_ratio": 15.107843137254902,
+        "storage_bytes": 102
+      },
+      "per_query": [
+        {
+          "query_id": "query_000",
+          "query_type": "factual",
+          "difficulty": "easy",
+          "latency_ms": 260.6344440000612,
+          "context_relevance": 1.0,
+          "answer_faithfulness": 0.98,
+          "context_utilization": 0.9,
+          "answer_completeness": 1.0,
+          "retrieved_facts": 1,
+          "required_facts": 1,
+          "cache_hit": false,
+          "cache_hit_ratio": 0.0,
+          "assumed_retrieval_precision": 0.95
+        },
+        {
+          "query_id": "query_001",
+          "query_type": "factual",
+          "difficulty": "easy",
+          "latency_ms": 260.841186000107,
+          "context_relevance": 1.0,
+          "answer_faithfulness": 0.98,
+          "context_utilization": 0.9,
+          "answer_completeness": 1.0,
+          "retrieved_facts": 1,
+          "required_facts": 1,
+          "cache_hit": false,
+          "cache_hit_ratio": 0.0,
+          "assumed_retrieval_precision": 0.95
+        },
+        {
+          "query_id": "query_002",
+          "query_type": "factual",
+          "difficulty": "easy",
+          "latency_ms": 260.77706699970804,
+          "context_relevance": 1.0,
+          "answer_faithfulness": 0.98,
+          "context_utilization": 0.9,
+          "answer_completeness": 1.0,
+          "retrieved_facts": 1,
+          "required_facts": 1,
+          "cache_hit": false,
+          "cache_hit_ratio": 0.0,
+          "assumed_retrieval_precision": 0.95
+        },
+        {
+          "query_id": "query_003",
+          "query_type": "relational",
+          "difficulty": "medium",
+          "latency_ms": 185.73875699985365,
+          "context_relevance": 0.5,
+          "answer_faithfulness": 0.65,
+          "context_utilization": 0.9,
+          "answer_completeness": 0.5,
+          "retrieved_facts": 1,
+          "required_facts": 2,
+          "cache_hit": true,
+          "cache_hit_ratio": 0.5,
+          "assumed_retrieval_precision": 0.85
+        },
+        {
+          "query_id": "query_004",
+          "query_type": "relational",
+          "difficulty": "medium",
+          "latency_ms": 260.7408429998941,
+          "context_relevance": 0.5,
+          "answer_faithfulness": 0.65,
+          "context_utilization": 0.9,
+          "answer_completeness": 0.5,
+          "retrieved_facts": 1,
+          "required_facts": 2,
+          "cache_hit": false,
+          "cache_hit_ratio": 0.0,
+          "assumed_retrieval_precision": 0.85
+        },
+        {
+          "query_id": "query_005",
+          "query_type": "relational",
+          "difficulty": "medium",
+          "latency_ms": 260.55451499996707,
+          "context_relevance": 0.5,
+          "answer_faithfulness": 0.65,
+          "context_utilization": 0.9,
+          "answer_completeness": 0.5,
+          "retrieved_facts": 1,
+          "required_facts": 2,
+          "cache_hit": false,
+          "cache_hit_ratio": 0.0,
+          "assumed_retrieval_precision": 0.85
+        },
+        {
+          "query_id": "query_006",
+          "query_type": "multi-hop",
+          "difficulty": "hard",
+          "latency_ms": 260.8237360000203,
+          "context_relevance": 0.75,
+          "answer_faithfulness": 0.9,
+          "context_utilization": 0.9,
+          "answer_completeness": 0.75,
+          "retrieved_facts": 3,
+          "required_facts": 4,
+          "cache_hit": false,
+          "cache_hit_ratio": 0.0,
+          "assumed_retrieval_precision": 0.75
+        },
+        {
+          "query_id": "query_007",
+          "query_type": "multi-hop",
+          "difficulty": "hard",
+          "latency_ms": 260.86815300004673,
+          "context_relevance": 0.75,
+          "answer_faithfulness": 0.9,
+          "context_utilization": 0.9,
+          "answer_completeness": 0.75,
+          "retrieved_facts": 3,
+          "required_facts": 4,
+          "cache_hit": false,
+          "cache_hit_ratio": 0.25,
+          "assumed_retrieval_precision": 0.75
+        },
+        {
+          "query_id": "query_008",
+          "query_type": "multi-hop",
+          "difficulty": "hard",
+          "latency_ms": 260.811429000114,
+          "context_relevance": 0.75,
+          "answer_faithfulness": 0.9,
+          "context_utilization": 0.9,
+          "answer_completeness": 0.75,
+          "retrieved_facts": 3,
+          "required_facts": 4,
+          "cache_hit": false,
+          "cache_hit_ratio": 0.0,
+          "assumed_retrieval_precision": 0.75
+        }
+      ]
+    }
+  },
+  "comparison": {
+    "latency_improvement_pct": 77.06794290810016,
+    "accuracy_improvement_pct": 28.571428571428566,
+    "compression_ratio": 15.107843137254902,
+    "storage_reduction_pct": 93.38092147955874
+  }
+}

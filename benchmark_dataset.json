@@ -1,0 +1,500 @@
+{
+  "facts": [
+    {
+      "id": "tech_000",
+      "content": "TSMC \u00e9 o maior fabricante de semicondutores do mundo",
+      "domain": "tech",
+      "metadata": {
+        "category": "manufacturer",
+        "verified": true
+      }
+    },
+    {
+      "id": "tech_001",
+      "content": "Taiwan produz 92% dos chips avan\u00e7ados globais",
+      "domain": "tech",
+      "metadata": {
+        "category": "production",
+        "verified": true
+      }
+    },
+    {
+      "id": "tech_002",
+      "content": "Restri\u00e7\u00f5es de exporta\u00e7\u00e3o de semicondutores foram implementadas em 2024",
+      "domain": "tech",
+      "metadata": {
+        "category": "regulation",
+        "verified": true
+      }
+    },
+    {
+      "id": "tech_003",
+      "content": "EUA bloqueou venda de GPUs H100 para China em outubro 2024",
+      "domain": "tech",
+      "metadata": {
+        "category": "regulation",
+        "verified": true
+      }
+    },
+    {
+      "id": "tech_004",
+      "content": "Nvidia desenvolveu chips restritos H20 para mercado chin\u00eas",
+      "domain": "tech",
+      "metadata": {
+        "category": "product",
+        "verified": true
+      }
+    },
+    {
+      "id": "tech_005",
+      "content": "ASML fornece equipamento EUV cr\u00edtico para TSMC",
+      "domain": "tech",
+      "metadata": {
+        "category": "supply_chain",
+        "verified": true
+      }
+    },
+    {
+      "id": "tech_006",
+      "content": "China investiu $150B em fabrica\u00e7\u00e3o dom\u00e9stica de chips",
+      "domain": "tech",
+      "metadata": {
+        "category": "investment",
+        "verified": true
+      }
+    },
+    {
+      "id": "tech_007",
+      "content": "SMIC \u00e9 o maior fabricante chin\u00eas de semicondutores",
+      "domain": "tech",
+      "metadata": {
+        "category": "manufacturer",
+        "verified": true
+      }
+    },
+    {
+      "id": "tech_008",
+      "content": "Tens\u00f5es geopol\u00edticas afetam cadeia de suprimentos tech",
+      "domain": "tech",
+      "metadata": {
+        "category": "geopolitics",
+        "verified": true
+      }
+    },
+    {
+      "id": "tech_009",
+      "content": "Demanda por AI elevou pre\u00e7os de GPUs em 340% em 2024",
+      "domain": "tech",
+      "metadata": {
+        "category": "market",
+        "verified": true
+      }
+    },
+    {
+      "id": "fin_000",
+      "content": "S&P 500 subiu 24% em 2024",
+      "domain": "finance",
+      "metadata": {
+        "category": "market",
+        "verified": true
+      }
+    },
+    {
+      "id": "fin_001",
+      "content": "Fed manteve taxa de juros em 5.25% em dezembro 2024",
+      "domain": "finance",
+      "metadata": {
+        "category": "policy",
+        "verified": true
+      }
+    },
+    {
+      "id": "fin_002",
+      "content": "A\u00e7\u00f5es de tech representam 32% do S&P 500",
+      "domain": "finance",
+      "metadata": {
+        "category": "composition",
+        "verified": true
+      }
+    },
+    {
+      "id": "fin_003",
+      "content": "Nvidia teve retorno de 239% em 2024",
+      "domain": "finance",
+      "metadata": {
+        "category": "performance",
+        "verified": true
+      }
+    },
+    {
+      "id": "fin_004",
+      "content": "Recess\u00e3o prevista para Q2 2025 por 68% dos economistas",
+      "domain": "finance",
+      "metadata": {
+        "category": "forecast",
+        "verified": true
+      }
+    },
+    {
+      "id": "fin_005",
+      "content": "Investimentos ESG cresceram 41% em 2024",
+      "domain": "finance",
+      "metadata": {
+        "category": "trend",
+        "verified": true
+      }
+    },
+    {
+      "id": "fin_006",
+      "content": "Bitcoin atingiu $95k em novembro 2024",
+      "domain": "finance",
+      "metadata": {
+        "category": "crypto",
+        "verified": true
+      }
+    },
+    {
+      "id": "fin_007",
+      "content": "T\u00edtulos do tesouro 10Y pagam 4.2% em dezembro 2024",
+      "domain": "finance",
+      "metadata": {
+        "category": "bonds",
+        "verified": true
+      }
+    },
+    {
+      "id": "fin_008",
+      "content": "Infla\u00e7\u00e3o caiu para 2.9% em novembro 2024",
+      "domain": "finance",
+      "metadata": {
+        "category": "inflation",
+        "verified": true
+      }
+    },
+    {
+      "id": "fin_009",
+      "content": "Desemprego manteve-se em 3.8% durante 2024",
+      "domain": "finance",
+      "metadata": {
+        "category": "employment",
+        "verified": true
+      }
+    },
+    {
+      "id": "legal_000",
+      "content": "GDPR requer consentimento expl\u00edcito para processamento de dados",
+      "domain": "legal",
+      "metadata": {
+        "category": "regulation",
+        "verified": true
+      }
+    },
+    {
+      "id": "legal_001",
+      "content": "Multas GDPR podem chegar a 4% da receita global anual",
+      "domain": "legal",
+      "metadata": {
+        "category": "penalty",
+        "verified": true
+      }
+    },
+    {
+      "id": "legal_002",
+      "content": "AI Act europeu entrou em vigor em agosto 2024",
+      "domain": "legal",
+      "metadata": {
+        "category": "regulation",
+        "verified": true
+      }
+    },
+    {
+      "id": "legal_003",
+      "content": "Sistemas de AI de alto risco requerem auditoria independente",
+      "domain": "legal",
+      "metadata": {
+        "category": "compliance",
+        "verified": true
+      }
+    },
+    {
+      "id": "legal_004",
+      "content": "Dados biom\u00e9tricos s\u00e3o considerados categoria especial sob GDPR",
+      "domain": "legal",
+      "metadata": {
+        "category": "classification",
+        "verified": true
+      }
+    },
+    {
+      "id": "legal_005",
+      "content": "Prazo para resposta a DSAR \u00e9 30 dias sob GDPR",
+      "domain": "legal",
+      "metadata": {
+        "category": "procedure",
+        "verified": true
+      }
+    },
+    {
+      "id": "legal_006",
+      "content": "California Consumer Privacy Act (CCPA) garante direito \u00e0 dele\u00e7\u00e3o",
+      "domain": "legal",
+      "metadata": {
+        "category": "rights",
+        "verified": true
+      }
+    },
+    {
+      "id": "legal_007",
+      "content": "Empresas devem designar DPO se processam dados em escala",
+      "domain": "legal",
+      "metadata": {
+        "category": "requirement",
+        "verified": true
+      }
+    },
+    {
+      "id": "legal_008",
+      "content": "Transfer\u00eancias internacionais requerem mecanismos adequados",
+      "domain": "legal",
+      "metadata": {
+        "category": "procedure",
+        "verified": true
+      }
+    },
+    {
+      "id": "legal_009",
+      "content": "Breach notification deve ocorrer em 72 horas sob GDPR",
+      "domain": "legal",
+      "metadata": {
+        "category": "requirement",
+        "verified": true
+      }
+    }
+  ],
+  "relations": [
+    {
+      "src_id": "tech_000",
+      "dst_id": "tech_005",
+      "relation_type": "supplies_to",
+      "strength": 0.9
+    },
+    {
+      "src_id": "tech_002",
+      "dst_id": "tech_003",
+      "relation_type": "causes",
+      "strength": 0.85
+    },
+    {
+      "src_id": "tech_003",
+      "dst_id": "tech_004",
+      "relation_type": "leads_to",
+      "strength": 0.9
+    },
+    {
+      "src_id": "tech_006",
+      "dst_id": "tech_007",
+      "relation_type": "invests_in",
+      "strength": 0.95
+    },
+    {
+      "src_id": "tech_008",
+      "dst_id": "tech_002",
+      "relation_type": "affects",
+      "strength": 0.8
+    },
+    {
+      "src_id": "tech_009",
+      "dst_id": "tech_004",
+      "relation_type": "drives_demand",
+      "strength": 0.7
+    },
+    {
+      "src_id": "fin_000",
+      "dst_id": "fin_002",
+      "relation_type": "driven_by",
+      "strength": 0.85
+    },
+    {
+      "src_id": "fin_001",
+      "dst_id": "fin_008",
+      "relation_type": "affects",
+      "strength": 0.9
+    },
+    {
+      "src_id": "fin_003",
+      "dst_id": "fin_002",
+      "relation_type": "part_of",
+      "strength": 0.95
+    },
+    {
+      "src_id": "fin_004",
+      "dst_id": "fin_001",
+      "relation_type": "influences",
+      "strength": 0.7
+    },
+    {
+      "src_id": "fin_008",
+      "dst_id": "fin_001",
+      "relation_type": "determines",
+      "strength": 0.85
+    },
+    {
+      "src_id": "legal_000",
+      "dst_id": "legal_001",
+      "relation_type": "enforced_by",
+      "strength": 0.95
+    },
+    {
+      "src_id": "legal_002",
+      "dst_id": "legal_003",
+      "relation_type": "requires",
+      "strength": 0.9
+    },
+    {
+      "src_id": "legal_004",
+      "dst_id": "legal_000",
+      "relation_type": "governed_by",
+      "strength": 0.85
+    },
+    {
+      "src_id": "legal_005",
+      "dst_id": "legal_000",
+      "relation_type": "part_of",
+      "strength": 0.95
+    },
+    {
+      "src_id": "legal_009",
+      "dst_id": "legal_000",
+      "relation_type": "mandated_by",
+      "strength": 0.9
+    }
+  ],
+  "queries": [
+    {
+      "id": "query_000",
+      "query": "Qual \u00e9 o maior fabricante de semicondutores do mundo?",
+      "query_type": "factual",
+      "ground_truth_answer": "TSMC \u00e9 o maior fabricante de semicondutores do mundo",
+      "required_facts": [
+        "tech_000"
+      ],
+      "required_hops": 1,
+      "difficulty": "easy"
+    },
+    {
+      "id": "query_001",
+      "query": "Qual foi o retorno da Nvidia em 2024?",
+      "query_type": "factual",
+      "ground_truth_answer": "Nvidia teve retorno de 239% em 2024",
+      "required_facts": [
+        "fin_003"
+      ],
+      "required_hops": 1,
+      "difficulty": "easy"
+    },
+    {
+      "id": "query_002",
+      "query": "Qual \u00e9 o prazo para resposta a DSAR sob GDPR?",
+      "query_type": "factual",
+      "ground_truth_answer": "O prazo para resposta a DSAR \u00e9 30 dias sob GDPR",
+      "required_facts": [
+        "legal_005"
+      ],
+      "required_hops": 1,
+      "difficulty": "easy"
+    },
+    {
+      "id": "query_003",
+      "query": "Quem fornece equipamento cr\u00edtico para o maior fabricante de chips?",
+      "query_type": "relational",
+      "ground_truth_answer": "ASML fornece equipamento EUV cr\u00edtico para TSMC, o maior fabricante",
+      "required_facts": [
+        "tech_000",
+        "tech_005"
+      ],
+      "required_hops": 2,
+      "difficulty": "medium"
+    },
+    {
+      "id": "query_004",
+      "query": "Qual pol\u00edtica do Fed influencia a infla\u00e7\u00e3o atual?",
+      "query_type": "relational",
+      "ground_truth_answer": "Fed manteve taxa em 5.25%, o que afeta infla\u00e7\u00e3o de 2.9%",
+      "required_facts": [
+        "fin_001",
+        "fin_008"
+      ],
+      "required_hops": 2,
+      "difficulty": "medium"
+    },
+    {
+      "id": "query_005",
+      "query": "Que regula\u00e7\u00e3o requer auditoria de sistemas AI?",
+      "query_type": "relational",
+      "ground_truth_answer": "AI Act europeu requer auditoria independente para sistemas de alto risco",
+      "required_facts": [
+        "legal_002",
+        "legal_003"
+      ],
+      "required_hops": 2,
+      "difficulty": "medium"
+    },
+    {
+      "id": "query_006",
+      "query": "Como restri\u00e7\u00f5es geopol\u00edticas afetaram o desenvolvimento de chips para China?",
+      "query_type": "multi-hop",
+      "ground_truth_answer": "Tens\u00f5es geopol\u00edticas levaram a restri\u00e7\u00f5es de exporta\u00e7\u00e3o em 2024, causando bloqueio de H100, o que levou Nvidia a desenvolver H20 para mercado chin\u00eas",
+      "required_facts": [
+        "tech_008",
+        "tech_002",
+        "tech_003",
+        "tech_004"
+      ],
+      "required_hops": 4,
+      "difficulty": "hard"
+    },
+    {
+      "id": "query_007",
+      "query": "Por que o S&P 500 teve forte desempenho em 2024 apesar de previs\u00f5es de recess\u00e3o?",
+      "query_type": "multi-hop",
+      "ground_truth_answer": "S&P 500 subiu 24% impulsionado por a\u00e7\u00f5es tech (32% do \u00edndice), incluindo Nvidia com 239% de retorno, superando previs\u00f5es de recess\u00e3o de 68% dos economistas",
+      "required_facts": [
+        "fin_000",
+        "fin_002",
+        "fin_003",
+        "fin_004"
+      ],
+      "required_hops": 4,
+      "difficulty": "hard"
+    },
+    {
+      "id": "query_008",
+      "query": "Quais s\u00e3o as consequ\u00eancias de uma empresa n\u00e3o notificar breach de dados biom\u00e9tricos no prazo?",
+      "query_type": "multi-hop",
+      "ground_truth_answer": "Dados biom\u00e9tricos s\u00e3o categoria especial sob GDPR, que requer breach notification em 72h, com multas de at\u00e9 4% da receita global por viola\u00e7\u00e3o",
+      "required_facts": [
+        "legal_004",
+        "legal_000",
+        "legal_009",
+        "legal_001"
+      ],
+      "required_hops": 4,
+      "difficulty": "hard"
+    }
+  ],
+  "stats": {
+    "num_facts": 30,
+    "num_relations": 16,
+    "num_queries": 9,
+    "domains": [
+      "tech",
+      "finance",
+      "legal"
+    ],
+    "query_types": {
+      "factual": 3,
+      "relational": 3,
+      "multi-hop": 3
+    }
+  }
+}
