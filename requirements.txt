@@ -1,2 +1,5 @@
-zstandard 
+psycopg2-binary
 sentence-transformers
+numpy
+zstandard
+scikit-learn

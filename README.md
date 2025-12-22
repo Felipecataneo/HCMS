@@ -1,233 +1,110 @@
-# HCMS — Hierarchical Compressed Memory System
+# HCMS — Hierarchical Compressed Memory System (V2)
 
-**HCMS** is a stateful memory engine designed to overcome structural limitations of traditional Retrieval-Augmented Generation (RAG) systems.
-It introduces **hierarchical memory, graph-native reasoning, compression, and cache-aware retrieval** as first-class primitives.
+**HCMS** é um substrato de memória de alta performance para agentes de IA. Ao contrário de RAGs tradicionais, o HCMS combina busca vetorial (semântica) com busca textual (BM25) e refinamento via Cross-Encoders para garantir que fatos críticos nunca sejam perdidos, independentemente do volume de dados.
 
-This repository currently contains:
+## Arquitetura de Recuperação (SOTA 2025)
 
-* A **working HCMS core** (`main.py`)
-* A **controlled benchmark suite** comparing HCMS vs RAG (`bench.py`)
-
-The long-term goal is to evolve HCMS into the **memory and reasoning backbone of a personal AI assistant**.
-
----
-
-## Motivation
-
-Traditional RAG systems are:
-
-* Stateless
-* Latency-heavy
-* Fragile under multi-hop reasoning
-* Storage-inefficient at scale
-
-HCMS addresses these issues by treating memory as a **structured, persistent, and compressible cognitive substrate**, rather than a flat retrieval index.
-
-In short:
-
-> **RAG retrieves documents.
-> HCMS retrieves structured knowledge.**
+O sistema utiliza uma pipeline de 4 estágios para superar limitações de relevância:
+1.  **Hybrid Search:** Scan simultâneo em `pgvector` e `tsvector` (PostgreSQL).
+2.  **RRF Fusion:** Fusão de rankings (Reciprocal Rank Fusion) para unificar resultados semânticos e exatos.
+3.  **Cross-Encoder Reranking:** Reordenação dos top candidatos através de atenção profunda (Acurácia > 90%).
+4.  **1-Hop Context Injection:** Injeção automática de vizinhos relacionais para expandir a linha de raciocínio do agente.
 
 ---
 
-## Core Concepts
-
-### 1. Hierarchical Memory
-
-* HOT tier: frequently accessed facts
-* WARM/COLD tiers: compressed long-term memory
-* Stateful across queries and sessions
-
-### 2. Graph-Native Reasoning
-
-* Knowledge represented as facts + relations
-* Multi-hop reasoning performed via graph traversal
-* Preserves relational structure lost in vector search
-
-### 3. Compression-Aware Storage
-
-* ~15× memory reduction in benchmark
-* Compression impacts storage, not accuracy or latency
-* Enables long-lived assistants with bounded memory growth
-
-### 4. Cache-Aware Execution
-
-* Cache hit defined proportionally (≥50% of required facts)
-* Realistic multi-tier memory behavior
-* Significant latency reduction on repeated or related queries
-
----
-
-## Repository Structure
+## Estrutura do Projeto
 
 ```text
-.
-├── main.py        # Core HCMS engine (memory, graph, cache, query execution)
-├── bench.py       # Benchmark suite: HCMS vs RAG baseline
-├── benchmark_dataset.json   # Auto-generated synthetic dataset
-├── benchmark_results.json   # Benchmark outputs + methodology
-└── README.md
+hcms/
+├── core.py             # Engine principal (Hybrid Recall & RRF)
+├── storage.py          # Interface PostgreSQL + FTS Support
+├── reranker.py         # Refinamento via Cross-Encoder (Sentence Transformers)
+├── compression.py      # Backend de compressão Zstd para documentos frios
+├── tier_management.py  # Gestão de ciclo de vida (Hot/Cold/Archive)
+└── scripts/
+    └── test_hcms.py    # Suite de testes de integração V2
 ```
 
 ---
 
-## `main.py` — HCMS Core Engine
+## Configuração Obrigatória do PostgreSQL
 
-`main.py` implements the **HCMS system itself**, including:
+O HCMS exige extensões e triggers específicos para operar a busca híbrida. Execute os comandos abaixo no seu banco de dados antes de iniciar o sistema:
 
-* Fact storage
-* Relation graph construction
-* Graph-based retrieval
-* Cache management
-* Compression accounting
-* Query execution pipeline
+### 1. Extensões e Schema
+```sql
+-- Habilita suporte a vetores
+CREATE EXTENSION IF NOT EXISTS vector;
 
-This file is intended to evolve into the **runtime memory engine of a personal assistant**, responsible for:
+-- Adiciona suporte a Busca Híbrida e Importância
+ALTER TABLE memories ADD COLUMN IF NOT EXISTS fts_tokens tsvector;
+ALTER TABLE memories ADD COLUMN IF NOT EXISTS importance FLOAT DEFAULT 1.0;
 
-* Remembering past interactions
-* Maintaining structured long-term knowledge
-* Supporting multi-step reasoning
-* Reducing hallucinations via grounded memory
+-- Índice GIN para performance em buscas textuais exatas
+CREATE INDEX IF NOT EXISTS idx_memories_fts ON memories USING GIN (fts_tokens);
+```
 
-> Think of `main.py` as the **cognitive substrate**, not the UI layer.
+### 2. Sincronização Automática (Trigger)
+O HCMS automatiza a tokenização de texto diretamente no banco para garantir consistência entre o que é lido e o que é indexado:
 
----
+```sql
+CREATE OR REPLACE FUNCTION memories_fts_trigger() RETURNS trigger AS $$
+BEGIN
+  new.fts_tokens := to_tsvector('simple', coalesce(new.content, ''));
+  return new;
+END
+$$ LANGUAGE plpgsql;
 
-## `bench.py` — Benchmark Suite
-
-`bench.py` provides a **transparent, reproducible benchmark** comparing:
-
-* **RAG Baseline**
-
-  * Vector search + chunking
-  * Stateless retrieval
-* **HCMS**
-
-  * Graph memory
-  * Compression
-  * Cache-aware execution
-
-### Benchmark Characteristics
-
-* Synthetic but **verifiable dataset**
-* Domains:
-
-  * Technology
-  * Finance
-  * Legal
-* Query types:
-
-  * Factual (1-hop)
-  * Relational (2-hop)
-  * Multi-hop (4-hop)
-
-### Metrics
-
-* Latency
-* Context relevance
-* Answer faithfulness
-* Context utilization
-* Answer completeness
-* Compression ratio
-* Storage footprint
-
-All **methodological assumptions are explicitly logged**, including:
-
-* Retrieval precision assumptions
-* Latency simulation model
-* Cache behavior
-* Statistical limitations
+CREATE TRIGGER trg_memories_fts_update
+BEFORE INSERT OR UPDATE ON memories
+FOR EACH ROW EXECUTE FUNCTION memories_fts_trigger();
+```
 
 ---
 
-## Running the Benchmark
+## Instalação
 
 ```bash
-python bench.py
+pip install psycopg2-binary sentence-transformers numpy zstandard
 ```
 
-This will:
+---
 
-1. Generate a reproducible synthetic dataset
-2. Run HCMS vs RAG
-3. Print detailed results
-4. Perform statistical analysis
-5. Run an ablation study
-6. Save results to `benchmark_results.json`
+## Como Usar
 
-Expected outcome (approximate):
+### Ingestão de Conhecimento
+O sistema aceita importância manual e relações de grafo:
+```python
+from hcms.core import HCMS
 
-* ~77% lower latency vs RAG
-* ~28% higher accuracy on multi-hop queries
-* ~15× compression ratio
-* ~93% lower storage usage
+hcms = HCMS("dbname=hcms user=seu_usuario")
+
+# Fato isolado
+hcms.remember("O servidor de produção utiliza a porta 9999.", importance=1.0)
+
+# Fato relacionado (Grafo)
+hcms.remember("A porta 9999 deve ser aberta no firewall.", relations=[("mem_id_anterior", "config")])
+```
+
+### Recuperação (Recall)
+A busca híbrida lida automaticamente com termos exatos e semânticos:
+```python
+# O Recall executará Hybrid Search + RRF + Rerank + Context Injection
+results = hcms.recall("qual a porta do servidor?", limit=3)
+
+for r in results:
+    print(f"Content: {r['content']}")
+    print(f"Contexto Relacionado: {r['context_edges']}")
+```
 
 ---
 
-## Why This Matters for Personal Assistants
+## Diferenciais Técnicos
 
-HCMS is designed for scenarios where assistants must:
-
-* Remember information across conversations
-* Reason over past events and relationships
-* Scale memory without exploding context windows
-* Avoid repeated retrieval costs
-* Maintain internal state
-
-This makes it suitable for:
-
-* Long-term personal assistants
-* Knowledge workers’ copilots
-* Research assistants
-* Legal / compliance assistants
-* Technical decision support systems
-
----
-
-## Current Limitations
-
-* Benchmark dataset is small (N=9 queries)
-* Results are **indicative**, not definitive
-* Retrieval precision is simulated, not learned
-* No real embedding model yet
-* No natural language interface yet
-
-These are **explicit design choices**, not oversights.
-
----
-
-## Roadmap
-
-Planned next steps:
-
-1. Replace simulated retrieval with real embeddings
-2. Support temporal and aggregation queries
-3. Incremental memory updates from dialogue
-4. Memory decay and prioritization
-5. Integration with an LLM-based conversational layer
-6. Evaluation on real-world datasets
-7. Turn HCMS into a plug-and-play assistant memory backend
-
----
-
-## Philosophy
-
-HCMS is not meant to “beat RAG” in all cases.
-
-Instead, it explores a different thesis:
-
-> **Reasoning improves when memory is structured, persistent, and stateful — not just retrieved.**
-
----
-
-## License
-
-MIT (or specify your preferred license)
-
----
-
-## Author
-
-Felipe Biava Cataneo
-Independent Researcher
+| Recurso | HCMS V2 | RAG Comum |
+| :--- | :--- | :--- |
+| **Busca por IDs/Códigos** | Nativa (via BM25/FTS) | Falha (Alucinação Vetorial) |
+| **Relação entre Fatos** | Automática (1-Hop Injection) | Inexistente (Fragmentada) |
+| **Refinamento** | Cross-Encoder (Deep Match) | Distância de Cosseno Simples |
+| **Storage** | Otimizado via Tiers & Zstd | Redundante e Pesado |
 
