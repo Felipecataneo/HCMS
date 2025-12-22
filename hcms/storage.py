@@ -213,3 +213,35 @@ class PostgresStorageProvider:
             with conn.cursor() as cur:
                 cur.execute(query, params)
                 return cur.fetchall()
+
+    # =========================================================================
+    # Sincroniza estatísticas de acesso (logs → tabela principal)
+    # =========================================================================
+    def sync_access_stats(self):
+        """
+        Agrega access_logs e atualiza:
+        - access_count (incremental)
+        - last_access (máximo entre atual e logs)
+        """
+
+        query = """
+            WITH agg AS (
+                SELECT
+                    mem_id,
+                    COUNT(*) AS cnt,
+                    MAX(access_time) AS latest
+                FROM access_logs
+                GROUP BY mem_id
+            )
+            UPDATE memories m
+            SET
+                access_count = m.access_count + agg.cnt,
+                last_access  = GREATEST(
+                    COALESCE(m.last_access, 0),
+                    agg.latest
+                )
+            FROM agg
+            WHERE m.id = agg.mem_id;
+        """
+
+        self.execute(query)

@@ -7,6 +7,7 @@ from sentence_transformers import SentenceTransformer, CrossEncoder
 
 from .compression import ZstdBackend
 from .storage import PostgresStorageProvider
+from .pruner import MemoryPruner
 
 # ============================================================
 # RE-RANKER (PRECISÃO CIRÚRGICA)
@@ -42,10 +43,19 @@ class HCMS:
         self.encoder = SentenceTransformer("all-MiniLM-L6-v2")
         self.reranker = MemoryReranker()
         self.zstd = ZstdBackend()
+        self.pruner = MemoryPruner(self)
 
         # Parâmetros de decaimento (Cognitive Decay)
         self.decay_lambda = 0.0000001
         self.weight_decay_lambda = 0.00001157
+
+    def maintenance(self):
+        """Job periódico de limpeza e otimização"""
+        self.sync_access_stats() # Primeiro consolida acessos
+        stats = self.pruner.run_garbage_collection()
+        dupes = self.pruner.consolidate_duplicates()
+        stats["duplicates_removed"] = dupes
+        return stats
 
     # ============================================================
     # INGESTÃO (ESCRITA)
