@@ -70,7 +70,7 @@ export default function HCMSApp() {
         {/* Chat Area */}
         <div className="flex-1 flex flex-col min-w-0 border-x h-full"> {/* Adicionado h-full aqui */}
           <header className="p-4 border-b bg-white/80 backdrop-blur-md z-10 flex-shrink-0">
-            <h1 className="text-xl font-bold tracking-tight">HCMS <span className="text-indigo-600">v2</span></h1>
+            <h1 className="text-xl font-bold tracking-tight">HCMS <span className="text-indigo-600">v3</span></h1>
           </header>
 
           {/* Container do ScrollArea - O pulo do gato é o flex-1 + h-full + min-h-0 */}

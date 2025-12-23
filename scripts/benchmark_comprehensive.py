@@ -29,7 +29,7 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 from sentence_transformers import SentenceTransformer
 
-from hcms.core import HCMSOptimized
+from hcms.core import RAGCore
 
 # ============================================================
 # RAG BASELINE (IMPLEMENTAÇÃO PADRÃO)
@@ -146,7 +146,7 @@ class ScenarioResult:
 class ComprehensiveBenchmark:
     def __init__(self, dsn: str):
         self.dsn = dsn
-        self.hcms = HCMSOptimized(dsn)
+        self.hcms = RAGCore(dsn)
         self.standard = StandardRAG(dsn)
         self.results: List[ScenarioResult] = []
     
@@ -505,7 +505,7 @@ class ComprehensiveBenchmark:
         
         # Roda consolidação
         start = time.time()
-        dupes_removed = self.hcms.pruner.consolidate_duplicates(similarity_threshold=0.90)
+        dupes_removed = self.hcms.consolidate_duplicates(similarity_threshold=0.90)
         consolidation_time = (time.time() - start) * 1000
         
         # Mede estado final
@@ -661,7 +661,7 @@ class ComprehensiveBenchmark:
         # Roda manutenção
         start = time.time()
         self.hcms.sync_access_stats()
-        stats = self.hcms.pruner.run_garbage_collection()
+        stats = self.hcms.run_garbage_collection()
         maintenance_time = (time.time() - start) * 1000
         
         # Conta o que sobrou

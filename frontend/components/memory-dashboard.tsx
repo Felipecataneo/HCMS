@@ -100,7 +100,7 @@ export function MemoryDashboard({ memories, onDelete, onRefresh }: Props) {
     {/* Footer da Sidebar (Opcional) */}
     <div className="mt-auto pt-4 border-t border-slate-200 flex-shrink-0">
       <p className="text-[10px] text-center text-slate-400 font-medium uppercase tracking-tighter">
-        HCMS v2 Cognitive Substrate
+        HCMS v3 Contextual Decay RAG
       </p>
     </div>
   </div>

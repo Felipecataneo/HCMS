@@ -2,7 +2,6 @@ import psycopg2
 from psycopg2.extras import RealDictCursor, Json
 import time
 
-
 class PostgresStorageProvider:
     def __init__(self, dsn: str):
         self.dsn = dsn
@@ -11,200 +10,109 @@ class PostgresStorageProvider:
     def _get_connection(self):
         return psycopg2.connect(self.dsn, cursor_factory=RealDictCursor)
 
-    # =========================================================================
-    # INIT DB (Schema + índices + FTS)
-    # =========================================================================
     def _init_db(self):
         with self._get_connection() as conn:
             with conn.cursor() as cur:
-                # Extensões
                 cur.execute("CREATE EXTENSION IF NOT EXISTS vector;")
-
-                # -------------------------------
-                # Tabela principal de memórias
-                # -------------------------------
+                
+                # 1. Tabela Principal
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS memories (
                         id TEXT PRIMARY KEY,
                         content TEXT,
-
-                        -- Embedding principal
                         embedding vector(384),
-
-                        -- Full-Text Search
                         fts_tokens tsvector,
-
-                        -- Metadados
                         metadata JSONB,
-
-                        -- Importância semântica
-                        importance FLOAT DEFAULT 1.0,
-
-                        -- Gestão de tiers
-                        tier INTEGER DEFAULT 0,
+                        importance FLOAT DEFAULT 0.5,
+                        last_accessed DOUBLE PRECISION,
                         access_count INTEGER DEFAULT 0,
-                        last_access DOUBLE PRECISION,
-                        creation_time DOUBLE PRECISION,
-
-                        -- Text compression
-                        compression_type TEXT DEFAULT 'none',
-                        compressed_data BYTEA,
-
-                        -- Embedding compression
-                        embedding_compression TEXT DEFAULT 'none',
-                        compressed_embedding BYTEA
+                        creation_time DOUBLE PRECISION
                     );
                 """)
 
-                # -------------------------------
-                # Função + Trigger FTS
-                # -------------------------------
+                # 2. Tabela de Co-ativações com Índice de Performance
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS coactivations (
+                        id_a TEXT,
+                        id_b TEXT,
+                        strength FLOAT DEFAULT 1.0,
+                        PRIMARY KEY (id_a, id_b)
+                    );
+                    CREATE INDEX IF NOT EXISTS idx_coact_lookup ON coactivations(id_a, id_b);
+                """)
+
+                # 3. Índices de Busca
+                cur.execute("CREATE INDEX IF NOT EXISTS idx_mem_vec ON memories USING hnsw (embedding vector_cosine_ops);")
+                cur.execute("CREATE INDEX IF NOT EXISTS idx_mem_fts ON memories USING GIN (fts_tokens);")
+                
+                # 4. TRIGGER DE FTS TURBINADO (O segredo da precisão)
+                # Mudamos para concatenar 'portuguese' (semântica) com 'simple' (literal/códigos)
                 cur.execute("""
                     CREATE OR REPLACE FUNCTION memories_fts_trigger() RETURNS trigger AS $$
-                    begin
-                    new.fts_tokens := to_tsvector('portuguese', coalesce(new.content, ''));
-                    return new;
-                    end
+                    BEGIN
+                        NEW.fts_tokens := 
+                            to_tsvector('portuguese', COALESCE(NEW.content, '')) || 
+                            to_tsvector('simple', COALESCE(NEW.content, ''));
+                        RETURN NEW;
+                    END
                     $$ LANGUAGE plpgsql;
                 """)
-
-                cur.execute("""
-                    DROP TRIGGER IF EXISTS trg_memories_fts_update ON memories;
-                """)
-
-                cur.execute("""
-                    CREATE TRIGGER trg_memories_fts_update
-                    BEFORE INSERT OR UPDATE ON memories
-                    FOR EACH ROW
-                    EXECUTE FUNCTION memories_fts_trigger();
-                """)
-
-                # -------------------------------
-                # Grafo de relações
-                # -------------------------------
-                cur.execute("""
-                    CREATE TABLE IF NOT EXISTS edges (
-                        src TEXT REFERENCES memories(id) ON DELETE CASCADE,
-                        dst TEXT REFERENCES memories(id) ON DELETE CASCADE,
-                        type TEXT,
-                        weight FLOAT DEFAULT 1.0,
-                        last_update DOUBLE PRECISION
-                            DEFAULT EXTRACT(EPOCH FROM NOW()),
-                        PRIMARY KEY (src, dst, type)
-                    );
-                """)
-
-                # -------------------------------
-                # Índices
-                # -------------------------------
-
-                # HNSW (busca vetorial)
-                cur.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_mem_vec
-                    ON memories
-                    USING hnsw (embedding vector_cosine_ops)
-                    WITH (m = 16, ef_construction = 64);
-                """)
-
-                # Full-Text Search
-                cur.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_memories_fts
-                    ON memories USING GIN (fts_tokens);
-                """)
-
-                # Tier management
-                cur.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_mem_tier_access
-                    ON memories (tier, last_access);
-                """)
-
-                # Graph traversal
-                cur.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_edges_src_weight
-                    ON edges (src, weight DESC);
-                """)
-
-                # Logs de acesso
-                cur.execute("""
-                    CREATE TABLE IF NOT EXISTS access_logs (
-                        mem_id TEXT,
-                        access_time DOUBLE PRECISION
-                    );
-                """)
-
-                cur.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_access_logs_time
-                    ON access_logs (access_time, mem_id);
-                """)
-
+                cur.execute("DROP TRIGGER IF EXISTS trg_memories_fts_update ON memories;")
+                cur.execute("CREATE TRIGGER trg_memories_fts_update BEFORE INSERT OR UPDATE ON memories FOR EACH ROW EXECUTE FUNCTION memories_fts_trigger();")
+                
                 conn.commit()
 
-    # =========================================================================
-    # INSERT / UPSERT de memória
-    # =========================================================================
-    def upsert_memory(
-        self,
-        mem_id: str,
-        content: str,
-        embedding,
-        metadata: dict | None = None,
-        importance: float = 1.0,
-        tier: int = 0
-    ):
+    def upsert_memory(self, mem_id, content, embedding, metadata, importance=0.5):
         now = time.time()
-
-        query = """
-            INSERT INTO memories (
-                id,
-                content,
-                embedding,
-                metadata,
-                importance,
-                tier,
-                access_count,
-                last_access,
-                creation_time
-            )
-            VALUES (
-                %(id)s,
-                %(content)s,
-                %(embedding)s,
-                %(metadata)s,
-                %(importance)s,
-                %(tier)s,
-                0,
-                %(now)s,
-                %(now)s
-            )
-            ON CONFLICT (id) DO UPDATE SET
-                content = EXCLUDED.content,
-                embedding = EXCLUDED.embedding,
-                metadata = EXCLUDED.metadata,
-                importance = EXCLUDED.importance,
-                tier = EXCLUDED.tier,
-                last_access = EXCLUDED.last_access;
-        """
-
-        params = {
-            "id": mem_id,
-            "content": content,
-            "embedding": embedding,
-            "metadata": Json(metadata) if metadata else None,
-            "importance": importance,
-            "tier": tier,
-            "now": now
-        }
-
-        self.execute(query, params)
-
-    # =========================================================================
-    # Exec helpers
-    # =========================================================================
-    def execute(self, query, params=None):
         with self._get_connection() as conn:
             with conn.cursor() as cur:
-                cur.execute(query, params)
+                cur.execute("""
+                    INSERT INTO memories (id, content, embedding, metadata, importance, last_accessed, creation_time)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (id) DO UPDATE SET 
+                        content = EXCLUDED.content, 
+                        embedding = EXCLUDED.embedding,
+                        importance = GREATEST(memories.importance, EXCLUDED.importance),
+                        metadata = memories.metadata || EXCLUDED.metadata,
+                        last_accessed = EXCLUDED.last_accessed;
+                """, (mem_id, content, embedding, Json(metadata or {}), importance, now, now))
                 conn.commit()
+
+    def update_access(self, mem_ids: list):
+        if not mem_ids: return
+        with self._get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    UPDATE memories SET 
+                        last_accessed = %s, 
+                        access_count = access_count + 1 
+                    WHERE id = ANY(%s)
+                """, (time.time(), mem_ids))
+                conn.commit()
+
+    def record_coactivation(self, pairs: list):
+        if not pairs: return
+        with self._get_connection() as conn:
+            with conn.cursor() as cur:
+                for a, b in pairs:
+                    id1, id2 = sorted([a, b])
+                    cur.execute("""
+                        INSERT INTO coactivations (id_a, id_b, strength) VALUES (%s, %s, 1.0)
+                        ON CONFLICT (id_a, id_b) DO UPDATE SET strength = coactivations.strength + 0.1;
+                    """, (id1, id2))
+                conn.commit()
+
+    def get_coactivation_scores(self, target_ids: list, context_ids: list):
+        if not target_ids or not context_ids: return []
+        with self._get_connection() as conn:
+            with conn.cursor() as cur:
+                # Cast explícito para FLOAT para evitar erro de Decimal no Python
+                cur.execute("""
+                    SELECT id_a, id_b, strength::FLOAT FROM coactivations 
+                    WHERE (id_a = ANY(%s) AND id_b = ANY(%s))
+                       OR (id_b = ANY(%s) AND id_a = ANY(%s))
+                """, (target_ids, context_ids, target_ids, context_ids))
+                return cur.fetchall()
 
     def fetch_all(self, query, params=None):
         with self._get_connection() as conn:
@@ -212,34 +120,8 @@ class PostgresStorageProvider:
                 cur.execute(query, params)
                 return cur.fetchall()
 
-    # =========================================================================
-    # Sincroniza estatísticas de acesso (logs → tabela principal)
-    # =========================================================================
-    def sync_access_stats(self):
-        """
-        Agrega access_logs e atualiza:
-        - access_count (incremental)
-        - last_access (máximo entre atual e logs)
-        """
-
-        query = """
-            WITH agg AS (
-                SELECT
-                    mem_id,
-                    COUNT(*) AS cnt,
-                    MAX(access_time) AS latest
-                FROM access_logs
-                GROUP BY mem_id
-            )
-            UPDATE memories m
-            SET
-                access_count = m.access_count + agg.cnt,
-                last_access  = GREATEST(
-                    COALESCE(m.last_access, 0),
-                    agg.latest
-                )
-            FROM agg
-            WHERE m.id = agg.mem_id;
-        """
-
-        self.execute(query)
+    def execute(self, query, params=None):
+        with self._get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(query, params)
+                conn.commit()

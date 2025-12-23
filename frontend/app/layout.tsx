@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "HCMS chatbot",
-  description: "Chatbot for managing memories",
+  description: "Contextual Decay RAG",
 };
 
 export default function RootLayout({
