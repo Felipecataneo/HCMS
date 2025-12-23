@@ -1,0 +1,219 @@
+{
+  "timestamp": "2025-12-23T09:15:59.916514",
+  "summary": {
+    "total_scenarios": 6,
+    "hcms_wins": 3,
+    "standard_wins": 3,
+    "hcms_avg_latency_ms": 44.046911266114975,
+    "standard_avg_latency_ms": 20.742067694664,
+    "hcms_avg_precision": 0.8888888888888888,
+    "standard_avg_precision": 0.8333333333333334,
+    "latency_overhead_ms": 23.304843571450974
+  },
+  "scenarios": [
+    {
+      "name": "Busca de Termos Exatos",
+      "winner": "HCMS",
+      "advantage_percent": 200.00000000000006,
+      "notes": "FTS hybrid search dominates pure vector search",
+      "hcms": {
+        "system": "HCMS",
+        "scenario": "ExactTerms",
+        "precision_at_1": 1.0,
+        "precision_at_3": 1.0,
+        "recall_at_5": 1.0,
+        "mrr": 1.0,
+        "latency_ms": 66.46434466044109,
+        "latency_p95_ms": 67.94166564941406,
+        "duplicate_rate": 0.0,
+        "noise_retention": 0.0,
+        "storage_mb": 0.0,
+        "index_count": 3
+      },
+      "standard": {
+        "system": "Standard",
+        "scenario": "ExactTerms",
+        "precision_at_1": 0.3333333333333333,
+        "precision_at_3": 0.3333333333333333,
+        "recall_at_5": 0.3333333333333333,
+        "mrr": 0.3333333333333333,
+        "latency_ms": 21.756807963053387,
+        "latency_p95_ms": 26.01337432861328,
+        "duplicate_rate": 0.0,
+        "noise_retention": 0.0,
+        "storage_mb": 0.0,
+        "index_count": 1
+      }
+    },
+    {
+      "name": "Recupera\u00e7\u00e3o sob Ru\u00eddo",
+      "winner": "Standard",
+      "advantage_percent": 0.0,
+      "notes": "Cross-encoder reranking adds latency without benefit",
+      "hcms": {
+        "system": "HCMS",
+        "scenario": "NoiseResilience",
+        "precision_at_1": 0.6666666666666666,
+        "precision_at_3": 0.6666666666666666,
+        "recall_at_5": 0.6666666666666666,
+        "mrr": 0.6666666666666666,
+        "latency_ms": 49.6673583984375,
+        "latency_p95_ms": 56.096553802490234,
+        "duplicate_rate": 0.0,
+        "noise_retention": 0.0,
+        "storage_mb": 0.0,
+        "index_count": 3
+      },
+      "standard": {
+        "system": "Standard",
+        "scenario": "NoiseResilience",
+        "precision_at_1": 0.6666666666666666,
+        "precision_at_3": 0.6666666666666666,
+        "recall_at_5": 0.6666666666666666,
+        "mrr": 0.6666666666666666,
+        "latency_ms": 20.91534932454427,
+        "latency_p95_ms": 21.666765213012695,
+        "duplicate_rate": 0.0,
+        "noise_retention": 0.0,
+        "storage_mb": 0.0,
+        "index_count": 1
+      }
+    },
+    {
+      "name": "Queries Amb\u00edguas",
+      "winner": "Standard",
+      "advantage_percent": 33.333333333333336,
+      "notes": "Hybrid search disambiguates via FTS context",
+      "hcms": {
+        "system": "HCMS",
+        "scenario": "AmbiguousQueries",
+        "precision_at_1": 0.6666666666666666,
+        "precision_at_3": 1.0,
+        "recall_at_5": 1.0,
+        "mrr": 0.6666666666666666,
+        "latency_ms": 46.660661697387695,
+        "latency_p95_ms": 60.33730506896973,
+        "duplicate_rate": 0.0,
+        "noise_retention": 0.0,
+        "storage_mb": 0.0,
+        "index_count": 3
+      },
+      "standard": {
+        "system": "Standard",
+        "scenario": "AmbiguousQueries",
+        "precision_at_1": 1.0,
+        "precision_at_3": 1.0,
+        "recall_at_5": 1.0,
+        "mrr": 1.0,
+        "latency_ms": 20.75505256652832,
+        "latency_p95_ms": 22.083520889282227,
+        "duplicate_rate": 0.0,
+        "noise_retention": 0.0,
+        "storage_mb": 0.0,
+        "index_count": 1
+      }
+    },
+    {
+      "name": "Detec\u00e7\u00e3o de Duplicatas",
+      "winner": "HCMS",
+      "advantage_percent": 66.66666666666666,
+      "notes": "HCMS removed 12 duplicates, Standard has no dedup mechanism",
+      "hcms": {
+        "system": "HCMS",
+        "scenario": "DuplicateDetection",
+        "precision_at_1": 1.0,
+        "precision_at_3": 1.0,
+        "recall_at_5": 1.0,
+        "mrr": 1.0,
+        "latency_ms": 22.83191680908203,
+        "latency_p95_ms": 22.83191680908203,
+        "duplicate_rate": 0.6666666666666666,
+        "noise_retention": 0.0,
+        "storage_mb": 0.0,
+        "index_count": 3
+      },
+      "standard": {
+        "system": "Standard",
+        "scenario": "DuplicateDetection",
+        "precision_at_1": 1.0,
+        "precision_at_3": 1.0,
+        "recall_at_5": 1.0,
+        "mrr": 1.0,
+        "latency_ms": 0.0,
+        "latency_p95_ms": 0.0,
+        "duplicate_rate": 0.0,
+        "noise_retention": 1.0,
+        "storage_mb": 0.0,
+        "index_count": 1
+      }
+    },
+    {
+      "name": "Lat\u00eancia em Escala",
+      "winner": "Standard",
+      "advantage_percent": 153.25797649252115,
+      "notes": "HCMS overhead: 29.9ms due to reranker",
+      "hcms": {
+        "system": "HCMS",
+        "scenario": "LatencyScaling",
+        "precision_at_1": 1.0,
+        "precision_at_3": 1.0,
+        "recall_at_5": 1.0,
+        "mrr": 1.0,
+        "latency_ms": 49.4892954826355,
+        "latency_p95_ms": 58.16469192504883,
+        "duplicate_rate": 0.0,
+        "noise_retention": 0.0,
+        "storage_mb": 0.0,
+        "index_count": 3
+      },
+      "standard": {
+        "system": "Standard",
+        "scenario": "LatencyScaling",
+        "precision_at_1": 1.0,
+        "precision_at_3": 1.0,
+        "recall_at_5": 1.0,
+        "mrr": 1.0,
+        "latency_ms": 19.54106092453003,
+        "latency_p95_ms": 23.369359970092773,
+        "duplicate_rate": 0.0,
+        "noise_retention": 0.0,
+        "storage_mb": 0.0,
+        "index_count": 1
+      }
+    },
+    {
+      "name": "Custo de Manuten\u00e7\u00e3o",
+      "winner": "HCMS",
+      "advantage_percent": 100.0,
+      "notes": "HCMS removed 100 noise entries, Standard retains all garbage",
+      "hcms": {
+        "system": "HCMS",
+        "scenario": "MaintenanceCost",
+        "precision_at_1": 1.0,
+        "precision_at_3": 1.0,
+        "recall_at_5": 1.0,
+        "mrr": 1.0,
+        "latency_ms": 29.167890548706055,
+        "latency_p95_ms": 29.167890548706055,
+        "duplicate_rate": 0.0,
+        "noise_retention": 0.0,
+        "storage_mb": 0.0,
+        "index_count": 3
+      },
+      "standard": {
+        "system": "Standard",
+        "scenario": "MaintenanceCost",
+        "precision_at_1": 1.0,
+        "precision_at_3": 1.0,
+        "recall_at_5": 1.0,
+        "mrr": 1.0,
+        "latency_ms": 0.0,
+        "latency_p95_ms": 0.0,
+        "duplicate_rate": 0.0,
+        "noise_retention": 1.0,
+        "storage_mb": 0.0,
+        "index_count": 1
+      }
+    }
+  ]
+}

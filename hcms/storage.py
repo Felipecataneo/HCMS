@@ -60,13 +60,11 @@ class PostgresStorageProvider:
                 # Função + Trigger FTS
                 # -------------------------------
                 cur.execute("""
-                    CREATE OR REPLACE FUNCTION memories_fts_trigger()
-                    RETURNS trigger AS $$
-                    BEGIN
-                        NEW.fts_tokens :=
-                            to_tsvector('simple', coalesce(NEW.content, ''));
-                        RETURN NEW;
-                    END
+                    CREATE OR REPLACE FUNCTION memories_fts_trigger() RETURNS trigger AS $$
+                    begin
+                    new.fts_tokens := to_tsvector('portuguese', coalesce(new.content, ''));
+                    return new;
+                    end
                     $$ LANGUAGE plpgsql;
                 """)
 

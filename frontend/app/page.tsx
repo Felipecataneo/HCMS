@@ -76,13 +76,51 @@ export default function HCMSApp() {
 
         {/* ScrollArea do Chat */}
         <ScrollArea className="flex-1 p-4">
-            <div className="space-y-6 max-w-3xl mx-auto">
+          <div className="space-y-6 max-w-3xl mx-auto">
             {messages.map((m, i) => (
-                <div key={i} className={`flex gap-3 ${m.role === "user" ? "flex-row-reverse" : ""}`}>
-                {/* ... resto das mensagens ... */}
+              <div 
+                key={i} 
+                className={`flex gap-3 ${m.role === "user" ? "flex-row-reverse" : ""}`}
+              >
+                {/* Avatar */}
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                  m.role === "user" ? "bg-slate-900" : "bg-indigo-600"
+                }`}>
+                  {m.role === "user" ? (
+                    <User className="w-4 h-4 text-white" />
+                  ) : (
+                    <Bot className="w-4 h-4 text-white" />
+                  )}
                 </div>
+
+                {/* Balão de Mensagem */}
+                <div className={`max-w-[80%] p-3 rounded-2xl shadow-sm ${
+                  m.role === "user" 
+                    ? "bg-slate-100 text-slate-900 rounded-tr-none" 
+                    : "bg-white border border-slate-200 text-slate-900 rounded-tl-none"
+                }`}>
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                    {m.content}
+                  </p>
+                </div>
+              </div>
             ))}
-            </div>
+            
+            {loading && (
+              <div className="flex gap-3">
+                <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center animate-pulse">
+                  <Bot className="w-4 h-4 text-white" />
+                </div>
+                <div className="bg-slate-50 border border-slate-200 p-3 rounded-2xl rounded-tl-none">
+                  <div className="flex gap-1">
+                    <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                    <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                    <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce"></span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </ScrollArea>
 
         {/* Input fixo no fundo */}
