@@ -65,86 +65,77 @@ export default function HCMSApp() {
     }
     };
     return (
-    // h-screen + overflow-hidden trava a página na altura da janela
-    <div className="flex h-screen bg-white overflow-hidden"> 
+      <div className="flex h-screen bg-white overflow-hidden"> 
         
-        {/* Chat Area - flex-1 garante que o chat ocupe o espaço restante */}
-        <div className="flex-1 flex flex-col min-w-0 border-x overflow-hidden">
-        <header className="p-4 border-b bg-white/80 backdrop-blur-md z-10">
+        {/* Chat Area */}
+        <div className="flex-1 flex flex-col min-w-0 border-x h-full"> {/* Adicionado h-full aqui */}
+          <header className="p-4 border-b bg-white/80 backdrop-blur-md z-10 flex-shrink-0">
             <h1 className="text-xl font-bold tracking-tight">HCMS <span className="text-indigo-600">v2</span></h1>
-        </header>
+          </header>
 
-        {/* ScrollArea do Chat */}
-        <ScrollArea className="flex-1 p-4">
-          <div className="space-y-6 max-w-3xl mx-auto">
-            {messages.map((m, i) => (
-              <div 
-                key={i} 
-                className={`flex gap-3 ${m.role === "user" ? "flex-row-reverse" : ""}`}
-              >
-                {/* Avatar */}
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                  m.role === "user" ? "bg-slate-900" : "bg-indigo-600"
-                }`}>
-                  {m.role === "user" ? (
-                    <User className="w-4 h-4 text-white" />
-                  ) : (
-                    <Bot className="w-4 h-4 text-white" />
-                  )}
-                </div>
+          {/* Container do ScrollArea - O pulo do gato é o flex-1 + h-full + min-h-0 */}
+          <div className="flex-1 overflow-hidden h-full min-h-0 relative">
+            <ScrollArea className="h-full w-full p-4">
+              <div className="space-y-6 max-w-3xl mx-auto pb-10"> {/* pb-10 evita que a última msg cole no input */}
+                {messages.map((m, i) => (
+                  <div 
+                    key={i} 
+                    className={`flex gap-3 ${m.role === "user" ? "flex-row-reverse" : ""}`}
+                  >
+                    {/* Avatar */}
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      m.role === "user" ? "bg-slate-900" : "bg-indigo-600"
+                    }`}>
+                      {m.role === "user" ? <User className="w-4 h-4 text-white" /> : <Bot className="w-4 h-4 text-white" />}
+                    </div>
 
-                {/* Balão de Mensagem */}
-                <div className={`max-w-[80%] p-3 rounded-2xl shadow-sm ${
-                  m.role === "user" 
-                    ? "bg-slate-100 text-slate-900 rounded-tr-none" 
-                    : "bg-white border border-slate-200 text-slate-900 rounded-tl-none"
-                }`}>
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                    {m.content}
-                  </p>
-                </div>
-              </div>
-            ))}
-            
-            {loading && (
-              <div className="flex gap-3">
-                <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center animate-pulse">
-                  <Bot className="w-4 h-4 text-white" />
-                </div>
-                <div className="bg-slate-50 border border-slate-200 p-3 rounded-2xl rounded-tl-none">
-                  <div className="flex gap-1">
-                    <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                    <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                    <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce"></span>
+                    {/* Balão */}
+                    <div className={`max-w-[80%] p-3 rounded-2xl shadow-sm ${
+                      m.role === "user" 
+                        ? "bg-slate-100 text-slate-900 rounded-tr-none" 
+                        : "bg-white border border-slate-200 text-slate-900 rounded-tl-none"
+                    }`}>
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap">{m.content}</p>
+                    </div>
                   </div>
-                </div>
+                ))}
+                
+                {loading && (
+                  <div className="flex gap-3">
+                    <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center animate-pulse">
+                      <Bot className="w-4 h-4 text-white" />
+                    </div>
+                    <div className="bg-slate-50 border border-slate-200 p-3 rounded-2xl rounded-tl-none">
+                      <div className="flex gap-1 italic text-xs text-slate-400">Agente processando...</div>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
+            </ScrollArea>
           </div>
-        </ScrollArea>
 
-        {/* Input fixo no fundo */}
-        <div className="p-4 border-t bg-white">
+          {/* Input fixo no fundo - flex-shrink-0 impede que o input seja esmagado */}
+          <div className="p-4 border-t bg-white flex-shrink-0">
             <form className="flex gap-2 max-w-3xl mx-auto" onSubmit={(e) => { e.preventDefault(); sendMessage(); }}>
-            <Input 
+              <Input 
                 placeholder="Fale algo para eu lembrar..." 
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 className="flex-1"
-            />
-            <Button type="submit" size="icon" disabled={loading}>
+              />
+              <Button type="submit" size="icon" disabled={loading}>
                 <Send className="w-4 h-4" />
-            </Button>
+              </Button>
             </form>
-        </div>
+          </div>
         </div>
 
-        {/* Memory Sidebar - h-full garante que ela ocupe a altura toda */}
+        {/* Memory Sidebar */}
         <MemoryDashboard 
-        memories={memories} 
-        onDelete={deleteMemory} 
-        onRefresh={fetchMemories} 
+          memories={memories} 
+          onDelete={deleteMemory} 
+          onRefresh={fetchMemories} 
         />
-    </div>
+      </div>
     );
 }

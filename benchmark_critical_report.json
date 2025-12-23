@@ -1,0 +1,72 @@
+{
+  "timestamp": "2025-12-23T09:34:17.259263",
+  "verdict": "NOT_VIABLE",
+  "hcms_wins": 1,
+  "standard_wins": 3,
+  "scenarios": [
+    {
+      "name": "Multi-Document Synthesis",
+      "winner": "Standard",
+      "margin": 0.0,
+      "justification": "Graph context injection deve permitir cruzamento de informa\u00e7\u00f5es distribu\u00eddas",
+      "hcms": {
+        "answer_accuracy": 1.0,
+        "latency_ms": 60.93700726826986,
+        "false_positive_rate": 0.0
+      },
+      "standard": {
+        "answer_accuracy": 1.0,
+        "latency_ms": 19.547224044799805,
+        "false_positive_rate": 0.0
+      }
+    },
+    {
+      "name": "Temporal Consistency",
+      "winner": "Standard",
+      "margin": 50.0,
+      "justification": "Importance decay deve priorizar fatos recentes sobre desatualizados",
+      "hcms": {
+        "answer_accuracy": 0.3333333333333333,
+        "latency_ms": 50.32618840535482,
+        "false_positive_rate": 0.0
+      },
+      "standard": {
+        "answer_accuracy": 0.6666666666666666,
+        "latency_ms": 18.744707107543945,
+        "false_positive_rate": 0.0
+      }
+    },
+    {
+      "name": "Noisy Ingest Resilience",
+      "winner": "HCMS",
+      "margin": 7100.0,
+      "justification": "GC removeu 95 entradas de ru\u00eddo. SNR: HCMS=100.00, Std=1.39",
+      "hcms": {
+        "answer_accuracy": 1.0,
+        "latency_ms": 34.37519073486328,
+        "false_positive_rate": 0.0
+      },
+      "standard": {
+        "answer_accuracy": 1.0,
+        "latency_ms": 21.03729248046875,
+        "false_positive_rate": 0.72
+      }
+    },
+    {
+      "name": "Adversarial Queries",
+      "winner": "Standard",
+      "margin": 33.33333333333333,
+      "justification": "Cross-encoder + FTS devem superar embeddings puros em queries amb\u00edguas",
+      "hcms": {
+        "answer_accuracy": 0.5,
+        "latency_ms": 47.346651554107666,
+        "false_positive_rate": 0.5
+      },
+      "standard": {
+        "answer_accuracy": 0.75,
+        "latency_ms": 21.253764629364014,
+        "false_positive_rate": 0.25
+      }
+    }
+  ]
+}
