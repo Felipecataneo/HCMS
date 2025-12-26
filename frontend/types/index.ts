@@ -4,6 +4,7 @@ export interface Memory {
   importance: number;
   access_count: number; // Alterado de 'tier' para 'access_count'
   last_accessed?: number; // Opcional: útil para debug
+  is_permanent: boolean;
 }
 
 export interface Message {

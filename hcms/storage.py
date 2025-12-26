@@ -1,4 +1,3 @@
-# hcms/storage.py
 import psycopg2
 from psycopg2.extras import RealDictCursor, Json
 import time
@@ -14,9 +13,10 @@ class PostgresStorageProvider:
     def _init_db(self):
         with self._get_connection() as conn:
             with conn.cursor() as cur:
+                # 1. Extensões base
                 cur.execute("CREATE EXTENSION IF NOT EXISTS vector;")
                 
-                # 1. Tabela Principal
+                # 2. Garante a existência da tabela (estrutura básica)
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS memories (
                         id TEXT PRIMARY KEY,
@@ -25,13 +25,16 @@ class PostgresStorageProvider:
                         fts_tokens tsvector,
                         metadata JSONB,
                         importance FLOAT DEFAULT 0.5,
-                        last_accessed DOUBLE PRECISION,
-                        access_count INTEGER DEFAULT 0,
                         creation_time DOUBLE PRECISION
                     );
                 """)
 
-                # 2. Tabela de Co-ativações com Índice de Performance
+                # 3. MIGRAÇÃO: Adiciona colunas que podem estar faltando de versões antigas
+                cur.execute("ALTER TABLE memories ADD COLUMN IF NOT EXISTS is_permanent BOOLEAN DEFAULT FALSE;")
+                cur.execute("ALTER TABLE memories ADD COLUMN IF NOT EXISTS last_accessed DOUBLE PRECISION;")
+                cur.execute("ALTER TABLE memories ADD COLUMN IF NOT EXISTS access_count INTEGER DEFAULT 0;")
+
+                # 4. Tabela de Co-ativações
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS coactivations (
                         id_a TEXT,
@@ -39,14 +42,21 @@ class PostgresStorageProvider:
                         strength FLOAT DEFAULT 1.0,
                         PRIMARY KEY (id_a, id_b)
                     );
-                    CREATE INDEX IF NOT EXISTS idx_coact_lookup ON coactivations(id_a, id_b);
                 """)
+                cur.execute("CREATE INDEX IF NOT EXISTS idx_coact_lookup ON coactivations(id_a, id_b);")
 
-                # 3. Índices de Busca
+                # 5. Índices de Performance
                 cur.execute("CREATE INDEX IF NOT EXISTS idx_mem_vec ON memories USING hnsw (embedding vector_cosine_ops);")
                 cur.execute("CREATE INDEX IF NOT EXISTS idx_mem_fts ON memories USING GIN (fts_tokens);")
                 
-                # 4. TRIGGER DE FTS DUAL (Portuguese + Simple)
+                # 6. ÍNDICE PARCIAL: (Agora a coluna is_permanent já existe com certeza)
+                cur.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_memories_decay_target 
+                    ON memories(last_accessed) 
+                    WHERE is_permanent = FALSE;
+                """)
+                
+                # 7. Trigger de FTS Dual
                 cur.execute("""
                     CREATE OR REPLACE FUNCTION memories_fts_trigger() RETURNS trigger AS $$
                     BEGIN
@@ -62,26 +72,24 @@ class PostgresStorageProvider:
                 
                 conn.commit()
 
-    def upsert_memory(self, mem_id, content, embedding, metadata, importance=0.5):
+
+    def upsert_memory(self, mem_id, content, embedding, metadata, importance=0.5, is_permanent=False):
         now = time.time()
         with self._get_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute("""
-                    INSERT INTO memories (id, content, embedding, metadata, importance, last_accessed, creation_time)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    INSERT INTO memories (id, content, embedding, metadata, importance, is_permanent, last_accessed, creation_time)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                     ON CONFLICT (id) DO UPDATE SET
                         content = EXCLUDED.content,
-                        embedding = EXCLUDED.embedding,
                         importance = GREATEST(memories.importance, EXCLUDED.importance),
-                        metadata = memories.metadata || EXCLUDED.metadata,
+                        is_permanent = memories.is_permanent OR EXCLUDED.is_permanent,
                         last_accessed = EXCLUDED.last_accessed;
-                """, (mem_id, content, embedding, Json(metadata or {}), importance, now, now))
+                """, (mem_id, content, embedding, Json(metadata or {}), importance, is_permanent, now, now))
                 conn.commit()
 
     def update_access(self, mem_ids: list, timestamp: float):
-        """Atualização em batch usando unnest - elimina N round-trips"""
-        if not mem_ids:
-            return
+        if not mem_ids: return
         with self._get_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute("""
@@ -94,8 +102,7 @@ class PostgresStorageProvider:
                 conn.commit()
 
     def record_coactivation(self, pairs: list):
-        if not pairs:
-            return
+        if not pairs: return
         with self._get_connection() as conn:
             with conn.cursor() as cur:
                 for a, b in pairs:
@@ -107,8 +114,7 @@ class PostgresStorageProvider:
                 conn.commit()
 
     def get_coactivation_scores(self, target_ids: list, context_ids: list):
-        if not target_ids or not context_ids:
-            return []
+        if not target_ids or not context_ids: return []
         with self._get_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute("""

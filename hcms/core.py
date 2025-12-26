@@ -32,10 +32,14 @@ class RAGCore:
         """Detecta códigos, IDs, UUIDs ou termos com caracteres especiais/números"""
         return bool(re.search(r'[A-Z0-9]{3,}-\d+|[a-f0-9]{8}-|\b[A-Z]{2,}\d{2,}\b', query))
 
-    def remember(self, content: str, importance: float = 0.5, metadata: dict = None):
+    def remember(self, content: str, importance: float = 0.5, metadata: dict = None, is_permanent: bool = False):
+        """
+        Armazena uma nova memória no sistema (v4.2)
+        """
         emb = self.encoder.encode(content).tolist()
         mem_id = f"mem_{int(time.time() * 1000)}"
-        self.storage.upsert_memory(mem_id, content, emb, metadata, importance)
+        # ADICIONE is_permanent AQUI na chamada do storage:
+        self.storage.upsert_memory(mem_id, content, emb, metadata, importance, is_permanent)
         return mem_id
 
     def recall(self, query: str, limit: int = 5) -> List[Dict]:

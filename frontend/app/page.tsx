@@ -66,7 +66,7 @@ export default function HCMSApp() {
     }
   };
 
-    const deleteMemory = async (id: string) => {
+  const deleteMemory = async (id: string) => {
     try {
         const res = await fetch(`${API_URL}/memories/${id}`, { 
         method: "DELETE" 
@@ -84,6 +84,26 @@ export default function HCMSApp() {
         console.error("Failed to delete memory:", error);
     }
     };
+
+    const togglePermanent = async (id: string) => {
+      try {
+        const res = await fetch(`${API_URL}/memories/${id}/toggle-permanent`, {
+          method: "POST",
+        });
+        if (res.ok) {
+          // Atualiza a lista localmente para refletir a mudança imediatamente
+          setMemories((prev) =>
+            prev.map((m) =>
+              m.id === id ? { ...m, is_permanent: !m.is_permanent } : m
+            )
+          );
+        }
+      } catch (error) {
+        console.error("Failed to toggle permanence:", error);
+      }
+    };
+
+
     return (
       <div className="flex h-screen bg-white overflow-hidden"> 
         
@@ -155,6 +175,7 @@ export default function HCMSApp() {
           memories={memories} 
           onDelete={deleteMemory} 
           onRefresh={fetchMemories} 
+          onTogglePermanent={togglePermanent}
         />
       </div>
     );
