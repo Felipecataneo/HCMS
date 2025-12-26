@@ -2,7 +2,8 @@ export interface Memory {
   id: string;
   content: string;
   importance: number;
-  tier: number;
+  access_count: number; // Alterado de 'tier' para 'access_count'
+  last_accessed?: number; // Opcional: útil para debug
 }
 
 export interface Message {

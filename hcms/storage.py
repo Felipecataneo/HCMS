@@ -1,3 +1,4 @@
+# hcms/storage.py
 import psycopg2
 from psycopg2.extras import RealDictCursor, Json
 import time
@@ -45,13 +46,12 @@ class PostgresStorageProvider:
                 cur.execute("CREATE INDEX IF NOT EXISTS idx_mem_vec ON memories USING hnsw (embedding vector_cosine_ops);")
                 cur.execute("CREATE INDEX IF NOT EXISTS idx_mem_fts ON memories USING GIN (fts_tokens);")
                 
-                # 4. TRIGGER DE FTS TURBINADO (O segredo da precisão)
-                # Mudamos para concatenar 'portuguese' (semântica) com 'simple' (literal/códigos)
+                # 4. TRIGGER DE FTS DUAL (Portuguese + Simple)
                 cur.execute("""
                     CREATE OR REPLACE FUNCTION memories_fts_trigger() RETURNS trigger AS $$
                     BEGIN
-                        NEW.fts_tokens := 
-                            to_tsvector('portuguese', COALESCE(NEW.content, '')) || 
+                        NEW.fts_tokens :=
+                            to_tsvector('portuguese', COALESCE(NEW.content, '')) ||
                             to_tsvector('simple', COALESCE(NEW.content, ''));
                         RETURN NEW;
                     END
@@ -69,8 +69,8 @@ class PostgresStorageProvider:
                 cur.execute("""
                     INSERT INTO memories (id, content, embedding, metadata, importance, last_accessed, creation_time)
                     VALUES (%s, %s, %s, %s, %s, %s, %s)
-                    ON CONFLICT (id) DO UPDATE SET 
-                        content = EXCLUDED.content, 
+                    ON CONFLICT (id) DO UPDATE SET
+                        content = EXCLUDED.content,
                         embedding = EXCLUDED.embedding,
                         importance = GREATEST(memories.importance, EXCLUDED.importance),
                         metadata = memories.metadata || EXCLUDED.metadata,
@@ -78,20 +78,24 @@ class PostgresStorageProvider:
                 """, (mem_id, content, embedding, Json(metadata or {}), importance, now, now))
                 conn.commit()
 
-    def update_access(self, mem_ids: list):
-        if not mem_ids: return
+    def update_access(self, mem_ids: list, timestamp: float):
+        """Atualização em batch usando unnest - elimina N round-trips"""
+        if not mem_ids:
+            return
         with self._get_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute("""
-                    UPDATE memories SET 
-                        last_accessed = %s, 
-                        access_count = access_count + 1 
-                    WHERE id = ANY(%s)
-                """, (time.time(), mem_ids))
+                    UPDATE memories m SET
+                        last_accessed = %s,
+                        access_count = access_count + 1
+                    FROM unnest(%s::text[]) AS u(id)
+                    WHERE m.id = u.id
+                """, (timestamp, mem_ids))
                 conn.commit()
 
     def record_coactivation(self, pairs: list):
-        if not pairs: return
+        if not pairs:
+            return
         with self._get_connection() as conn:
             with conn.cursor() as cur:
                 for a, b in pairs:
@@ -103,12 +107,12 @@ class PostgresStorageProvider:
                 conn.commit()
 
     def get_coactivation_scores(self, target_ids: list, context_ids: list):
-        if not target_ids or not context_ids: return []
+        if not target_ids or not context_ids:
+            return []
         with self._get_connection() as conn:
             with conn.cursor() as cur:
-                # Cast explícito para FLOAT para evitar erro de Decimal no Python
                 cur.execute("""
-                    SELECT id_a, id_b, strength::FLOAT FROM coactivations 
+                    SELECT id_a, id_b, strength::FLOAT FROM coactivations
                     WHERE (id_a = ANY(%s) AND id_b = ANY(%s))
                        OR (id_b = ANY(%s) AND id_a = ANY(%s))
                 """, (target_ids, context_ids, target_ids, context_ids))

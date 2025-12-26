@@ -16,12 +16,18 @@ export default function HCMSApp() {
   const [loading, setLoading] = useState(false);
 
   // Busca memórias do backend
-  const fetchMemories = async () => {
-    const res = await fetch(`${API_URL}/memories`);
-    const data = await res.json();
-    setMemories(data);
-  };
 
+  const fetchMemories = async () => {
+    try {
+      const res = await fetch(`${API_URL}/memories`);
+      if (!res.ok) throw new Error(`Erro na busca: ${res.status}`);
+      const data = await res.json();
+      console.log("Memórias recebidas:", data); // Verifique se o array chega aqui
+      setMemories(data);
+    } catch (err) {
+      console.error("Falha ao carregar memórias. O servidor está rodando?", err);
+    }
+  };
   useEffect(() => { fetchMemories(); }, []);
 
   const sendMessage = async () => {
@@ -38,9 +44,23 @@ export default function HCMSApp() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: input }),
       });
+      
+      if (!res.ok) {
+         const errorData = await res.json();
+         throw new Error(errorData.detail || "Erro no servidor");
+      }
+
       const data = await res.json();
       setMessages((prev) => [...prev, { role: "assistant", content: data.reply }]);
-      fetchMemories(); // Atualiza memórias após a resposta do agente
+      
+      // Delay de 500ms para dar tempo ao background task do backend salvar a memória
+      setTimeout(() => {
+        fetchMemories();
+      }, 500);
+
+    } catch (err) {
+      console.error("Erro no chat:", err);
+      setMessages((prev) => [...prev, { role: "assistant", content: "Erro: Não consegui conectar ao cérebro (Ollama/Backend)." }]);
     } finally {
       setLoading(false);
     }

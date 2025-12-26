@@ -1,3 +1,4 @@
+# hcms/core.py
 import time
 import math
 import re
@@ -9,13 +10,26 @@ class RAGCore:
     def __init__(self, dsn: str):
         self.storage = PostgresStorageProvider(dsn)
         self.encoder = SentenceTransformer("all-MiniLM-L6-v2")
-        self.activation_levels = {} 
-        self.last_activation_update = {} 
-        self.short_term_context = [] 
+        self.activation_levels = {}
+        self.last_activation_update = {}
+        self.short_term_context = []
+        self._warm_short_term_cache()
+        
+        # Lock para prevenir race conditions em atualizações concorrentes
+        from threading import Lock
+        self._context_lock = Lock()
+
+    def _warm_short_term_cache(self):
+        """Inicializa o contexto com memórias frequentes/recentes como baseline mental"""
+        rows = self.storage.fetch_all("""
+            SELECT id FROM memories 
+            ORDER BY access_count DESC, last_accessed DESC 
+            LIMIT 5
+        """)
+        self.short_term_context = [r['id'] for r in rows] if rows else []
 
     def _is_technical_query(self, query: str) -> bool:
         """Detecta códigos, IDs, UUIDs ou termos com caracteres especiais/números"""
-        # Padrão para códigos como XK-9847, IDs alfanuméricos longos, etc.
         return bool(re.search(r'[A-Z0-9]{3,}-\d+|[a-f0-9]{8}-|\b[A-Z]{2,}\d{2,}\b', query))
 
     def remember(self, content: str, importance: float = 0.5, metadata: dict = None):
@@ -29,37 +43,56 @@ class RAGCore:
         query_emb = self.encoder.encode(query).tolist()
         is_tech = self._is_technical_query(query)
 
-        # 1. BUSCA HÍBRIDA DE PRECISÃO (SQL)
-        # Unificamos tudo em uma query para reduzir latência de rede (I/O)
+        # 1. BUSCA HÍBRIDA DE PRECISÃO
         candidates = self._get_hybrid_candidates(query, query_emb, is_tech, limit=30)
-        if not candidates: return []
+        if not candidates:
+            return []
 
         candidate_ids = [c['id'] for c in candidates]
         coactive_map = self._get_coactivation_map(candidate_ids)
         
-        # 2. RANKING CONTEXTUAL
+        # CORREÇÃO CRÍTICA: Normalização de RRF
+        # O valor máximo teórico do nosso RRF é ~0.041 (Rank 1 em ambos)
+        # Normalizamos para que um hit perfeito seja 1.0
+        MAX_RRF = (1.0 / 60.0) + (1.5 / 60.0)
+        
+        # 2. RANKING CONTEXTUAL COM ESCALA CORRIGIDA
         for c in candidates:
-            # Scores base vindos do DB
-            s_hybrid = float(c['hybrid_score'])
-            # Se for match literal em query técnica, boost absoluto
-            s_literal = 1.0 if (is_tech and c['is_literal_match']) else 0.0
+            # 1. Normaliza o Hybrid Score para escala 0-1
+            s_hybrid_raw = float(c['hybrid_score'])
+            s_hybrid_norm = min(1.0, s_hybrid_raw / MAX_RRF)
             
-            # Contexto Temporal/Ativação
+            # 2. Aplica o Multiplicador Literal (apenas se for técnico)
+            is_literal = (is_tech and c['is_literal_match'])
+            literal_boost = 2.0 if is_literal else 1.0
+            
+            # 3. Contexto e Ativação
             s_act = self._get_current_activation(c['id'], now)
             s_coact = float(coactive_map.get(c['id'], 0.0))
             
-            # Score Final: Prioridade para Literal Match > Hybrid > Contexto
-            c['final_score'] = (s_literal * 0.6) + (s_hybrid * 0.25) + (s_act * 0.1) + (s_coact * 0.05)
+            # 4. Cálculo Final com pesos equilibrados
+            # Boost literal agora afeta o componente híbrido antes da ponderação
+            # Clampa em 1.0 para evitar overflow do boost
+            c['final_score'] = (min(1.0, s_hybrid_norm * literal_boost) * 0.6) + \
+                               (s_act * 0.25) + \
+                               (s_coact * 0.15)
 
-        results = sorted(candidates, key=lambda x: x['final_score'], reverse=True)[:limit]
+        # Ordena pelo score final
+        results = sorted(candidates, key=lambda x: x['final_score'], reverse=True)
         
-        # 3. ATUALIZAÇÃO DE ESTADO (Para a próxima query)
+        # 3. FILTRO DE ALUCINAÇÃO (Agora com escala corrigida)
+        # Se mesmo normalizado o score é menor que 0.15, é ruído
+        if results and results[0]['final_score'] < 0.15:
+            return []
+        
+        results = results[:limit]
+        
+        # 4. ATUALIZAÇÃO DE ESTADO
         self._update_system_state(results, now)
         
         return results
 
     def _get_hybrid_candidates(self, query, query_emb, is_tech, limit):
-        # Para termos técnicos, usamos 'simple' para evitar o stemming do português
         ts_cfg = 'simple' if is_tech else 'portuguese'
         
         sql = f"""
@@ -71,15 +104,15 @@ class RAGCore:
             LIMIT 100
         ),
         f_results AS (
-            SELECT id, 
+            SELECT id,
                    ts_rank_cd(fts_tokens, websearch_to_tsquery('{ts_cfg}', %s)) as rnk_f,
                    ROW_NUMBER() OVER (ORDER BY ts_rank_cd(fts_tokens, websearch_to_tsquery('{ts_cfg}', %s)) DESC) as r_f
-            FROM memories 
+            FROM memories
             WHERE fts_tokens @@ websearch_to_tsquery('{ts_cfg}', %s)
                OR content ILIKE '%%' || %s || '%%'
             LIMIT 100
         )
-        SELECT v.*, 
+        SELECT v.*,
                (f.id IS NOT NULL AND v.content ILIKE '%%' || %s || '%%') as is_literal_match,
                (1.0 / (60 + v.r_v)) + (1.5 / (60 + COALESCE(f.r_f, 100))) as hybrid_score
         FROM v_results v
@@ -87,33 +120,37 @@ class RAGCore:
         ORDER BY is_literal_match DESC, hybrid_score DESC
         LIMIT %s
         """
-        # Passamos a query para os parâmetros do SQL
         return self.storage.fetch_all(sql, (query_emb, query_emb, query, query, query, query, query, limit))
 
     def _get_current_activation(self, mem_id, now):
         lvl = self.activation_levels.get(mem_id, 0.0)
         last = self.last_activation_update.get(mem_id, now)
-        # Decay: meia-vida de 5 minutos
-        return lvl * math.exp(-0.693 * (now - last) / 300)
+        # Decay ajustado: meia-vida de 15 minutos (mais realista para working memory)
+        return lvl * math.exp(-0.693 * (now - last) / 900)
 
     def _get_coactivation_map(self, candidate_ids):
-        if not self.short_term_context: return {}
+        if not self.short_term_context:
+            return {}
         rows = self.storage.get_coactivation_scores(candidate_ids, self.short_term_context)
         scores = {}
         for r in rows:
             target = r['id_a'] if r['id_a'] in candidate_ids else r['id_b']
             scores[target] = scores.get(target, 0.0) + float(r['strength'])
-        if not scores: return {}
+        if not scores:
+            return {}
         m = max(scores.values())
         return {k: v/m for k, v in scores.items()}
 
     def _update_system_state(self, results, now):
-        ids = [r['id'] for r in results]
-        if self.short_term_context:
-            pairs = [(old, new) for old in self.short_term_context for new in ids if old != new]
-            self.storage.record_coactivation(pairs)
-        self.storage.update_access(ids)
-        for i in ids:
-            self.activation_levels[i] = 1.0
-            self.last_activation_update[i] = now
-        self.short_term_context = ids
+        # Lock crítico: previne race conditions quando múltiplas requisições
+        # tentam atualizar o contexto simultaneamente
+        with self._context_lock:
+            ids = [r['id'] for r in results]
+            if self.short_term_context:
+                pairs = [(old, new) for old in self.short_term_context for new in ids if old != new]
+                self.storage.record_coactivation(pairs)
+            self.storage.update_access(ids, now)
+            for i in ids:
+                self.activation_levels[i] = 1.0
+                self.last_activation_update[i] = now
+            self.short_term_context = ids
