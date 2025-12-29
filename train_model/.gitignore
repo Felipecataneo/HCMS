@@ -1,0 +1,41 @@
+# ===================================
+# Python
+# ===================================
+.venv/
+__pycache__/
+*.py[cod]
+
+# ===================================
+# Model artifacts (HF)
+# ===================================
+hcms_v*_mobile/
+hcms_v*_pc
+outputs/
+outputs_*/
+
+# ===================================
+# Model artifacts (GGUF)
+# ===================================
+hcms_mobile_expert_gguf/
+*.gguf
+
+# ===================================
+# Unsloth / Torch cache
+# ===================================
+unsloth_compiled_cache/
+
+# ===================================
+# HuggingFace cache (local)
+# ===================================
+.cache/
+huggingface/
+
+# ===================================
+# Datasets / sensitive
+# ===================================
+*.env
+.env*
+hcms_*dataset*.jsonl
+llama.cpp/
+training_data/
+hcms_personal_llm/

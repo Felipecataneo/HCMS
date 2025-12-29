@@ -6,3 +6,13 @@ scikit-learn
 fastapi
 pydantic
 uvicorn
+torch
+transformers
+datasets
+trl
+accelerate
+unsloth
+bitsandbytes
+peft
+sentencepiece
+protobuf<5

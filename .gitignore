@@ -10,3 +10,6 @@ wheels/
 .venv
 hcms.db
 ideia.txt
+unsloth_compiled_cache/
+
+mobile.md

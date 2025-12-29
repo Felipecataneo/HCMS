@@ -1,117 +1,142 @@
-# hcms/agent_bridge.py
-import requests
+# agent_bridge.py
+import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer
 import json
 import re
 
-class HCMSAgentBridge:
-    def __init__(self, core_instance, model="llama3.2:3b"):
-        """
-        Ponte entre o Core (RAG) e o LLM (Ollama)
-        
-        Args:
-            core_instance: Instância do RAGCore
-            model: Nome do modelo Ollama a usar
-        """
+class LlamaNotebookBridge:
+    def __init__(self, core_instance, model_path="train_model/hcms_personal_llm/checkpoint-500"):
         self.core = core_instance
-        self.model = model
-        self.ollama_url = "http://localhost:11434/api/chat"
-
-    def chat(self, user_input: str) -> str:
-        """
-        Processa uma mensagem do usuário e retorna resposta do agente
         
-        Args:
-            user_input: Mensagem do usuário
-            
-        Returns:
-            Resposta gerada pelo LLM com base no contexto recuperado
-        """
-        # 1. RECALL: Recupera contexto relevante do sistema de memória
-        context_docs = self.core.recall(user_input, limit=5)
-        context_str = "\n".join([f"- {c['content']}" for c in context_docs])
-
-        # 2. PROMPT AUTORITATIVO: Força o LLM a confiar nas próprias memórias
-        # Isso resolve o problema de o agente dizer "não sei" quando tem a info
-        system_prompt = (
-            "Você é o sistema de inteligência de um Agente Pessoal com memória de longo prazo. "
-            "As informações no 'Contexto' são suas PRÓPRIAS memórias reais e verificadas. "
-            "Se a resposta estiver listada no contexto, você DEVE usá-la com confiança. "
-            "Nunca diga 'Não tenho essa memória' ou 'Não sei' se a informação está no contexto abaixo. "
-            "Se a informação NÃO estiver no contexto, aí sim você pode dizer que não sabe. "
-            "Responda de forma natural e confiante com base no que você lembra."
+        print(f"🔄 Carregando modelo RAG-aware de: {model_path}")
+        
+        self.tokenizer = AutoTokenizer.from_pretrained(model_path)
+        self.model = AutoModelForCausalLM.from_pretrained(
+            model_path,
+            device_map="auto",
+            torch_dtype=torch.bfloat16
         )
         
-        prompt = f"Contexto:\n{context_str}\n\nPergunta: {user_input}"
+        print("✅ Modelo carregado com sucesso")
         
-        # 3. GERA RESPOSTA usando Ollama
-        response = self._call_ollama([
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": prompt}
-        ])
+    def chat(self, user_input: str) -> str:
+        """Chat usando memórias do RAG"""
+        # Busca memórias relevantes
+        context_docs = self.core.recall(user_input, limit=5)
+        
+        # Formata memórias no estilo do treinamento
+        if context_docs:
+            memories_text = "\n".join([
+                f"[Memória {i+1} | {self._format_timestamp(c.get('creation_time', 0))}] {c['content']}"
+                for i, c in enumerate(context_docs)
+            ])
+        else:
+            memories_text = "[Nenhuma memória relevante encontrada]"
+        
+        # Monta mensagens no formato treinado
+        messages = [
+            {
+                "role": "system",
+                "content": f"""Você é um assistente pessoal com memória persistente.
 
+REGRAS IMPORTANTES:
+- Use apenas informações presentes nas memórias
+- Priorize memórias mais recentes se houver conflito
+- Ignore memórias irrelevantes
+- Nunca invente dados
+- Se a informação não existir, diga explicitamente que não sabe
 
-
-        return response
-
+Memórias disponíveis:
+{memories_text}"""
+            },
+            {"role": "user", "content": user_input}
+        ]
+        
+        # Gera resposta
+        return self._generate(messages, max_new_tokens=200, temperature=0.3)
 
     def analyze_and_remember(self, user_input: str):
-        if len(user_input.split()) < 3: return
+        """Extrai fatos e salva no banco"""
+        # Sistema especializado em extração
+        messages = [
+            {
+                "role": "system",
+                "content": """Você é um extrator de informações. Analise a mensagem do usuário e:
 
-        mem_prompt = (
-            "Analise a mensagem do usuário.\n"
-            "Extraia o fato essencial. Atribua importância 0.0-1.0.\n"
-            "Se o usuário quer guardar para sempre, Permanent: True.\n"
-            "Formato: Fato: [texto] | Score: [valor] | Permanent: [True/False]\n\n"
-            f"Mensagem: {user_input}"
-        )
+1. Se contiver informação factual (senha, código, data, endereço, contato, preferência), extraia
+2. Responda APENAS com JSON: {"fact": "informação extraída", "importance": 0.0-1.0, "permanent": true/false}
+3. Se não houver nada relevante, responda: {}
 
-        analysis = self._call_ollama([{"role": "user", "content": mem_prompt}])
-        print(f"DEBUG LLM Extração: {analysis}") # <--- Verifique isso no terminal
+Exemplos:
+User: A senha do Wi-Fi é Secure@2024
+Response: {"fact": "A senha do Wi-Fi é Secure@2024", "importance": 0.9, "permanent": true}
 
-        if "Fato:" in analysis and "|" in analysis:
-            try:
-                # Regex mais flexível para espaços
-                fact = re.search(r"Fato:\s*(.*?)\s*\|", analysis).group(1).strip()
-                score = float(re.search(r"Score:\s*([\d.]+)", analysis).group(1).strip())
-                is_permanent = "Permanent: True" in analysis or "permanente" in user_input.lower()
-
-                # CHAMADA PARA O CORE
-                self.core.remember(content=fact, importance=score, is_permanent=is_permanent)
-                print(f"🧠 Memória Salva: {fact} (Score: {score})")
-            except Exception as e:
-                print(f"⚠️ Erro ao salvar: {e}")
-
-    def _call_ollama(self, messages):
-        """
-        Faz chamada HTTP ao Ollama
+User: Oi, tudo bem?
+Response: {}"""
+            },
+            {"role": "user", "content": user_input}
+        ]
         
-        Args:
-            messages: Lista de mensagens no formato OpenAI
-            
-        Returns:
-            Resposta do LLM como string
-        """
+        raw_output = self._generate(messages, max_new_tokens=100, temperature=0.0)
+        
         try:
-            payload = {
-                "model": self.model, 
-                "messages": messages, 
-                "stream": False
-            }
-            
-            res = requests.post(
-                self.ollama_url, 
-                json=payload, 
-                timeout=30  # Aumentado de 10s para 30s (modelos maiores)
-            )
-            
-            if res.status_code != 200:
-                return f"Erro HTTP {res.status_code}: {res.text}"
-            
-            return res.json()["message"]["content"]
-            
-        except requests.exceptions.Timeout:
-            return "Erro: Timeout ao conectar com Ollama (>30s). O modelo está rodando?"
-        except requests.exceptions.ConnectionError:
-            return "Erro: Não foi possível conectar ao Ollama. Verifique se está rodando em localhost:11434"
+            # Extrai JSON da resposta
+            json_match = re.search(r"\{.*\}", raw_output, re.DOTALL)
+            if json_match:
+                data = json.loads(json_match.group(0))
+                fact = data.get("fact")
+                
+                if fact:
+                    importance = data.get("importance", 0.8)
+                    is_perm = data.get("permanent", True)
+                    self.core.remember(
+                        content=fact, 
+                        importance=importance, 
+                        is_permanent=is_perm
+                    )
+                    print(f"✅ Memória salva: {fact}")
+            else:
+                print("🍃 Nada relevante para memorizar")
+                
         except Exception as e:
-            return f"Erro inesperado ao chamar Ollama: {e}"
+            print(f"⚠️ Erro ao processar extração: {e} | Output: {raw_output}")
+
+    def _generate(self, messages, max_new_tokens, temperature):
+        """Gera resposta usando o modelo fine-tunado"""
+        # Aplica chat template
+        prompt = self.tokenizer.apply_chat_template(
+            messages, 
+            tokenize=False, 
+            add_generation_prompt=True
+        )
+        
+        # Tokeniza
+        inputs = self.tokenizer(prompt, return_tensors="pt").to(self.model.device)
+        
+        # Gera
+        with torch.no_grad():
+            outputs = self.model.generate(
+                **inputs,
+                max_new_tokens=max_new_tokens,
+                temperature=temperature if temperature > 0 else None,
+                do_sample=temperature > 0,
+                pad_token_id=self.tokenizer.eos_token_id,
+                eos_token_id=self.tokenizer.eos_token_id
+            )
+        
+        # Decodifica apenas a nova parte
+        response = self.tokenizer.decode(
+            outputs[0][inputs['input_ids'].shape[1]:], 
+            skip_special_tokens=True
+        )
+        
+        return response.strip()
+    
+    def _format_timestamp(self, timestamp):
+        """Converte timestamp Unix para data legível"""
+        from datetime import datetime
+        try:
+            dt = datetime.fromtimestamp(float(timestamp))
+            return dt.strftime("%Y-%m-%d")
+        except:
+            return "data desconhecida"
